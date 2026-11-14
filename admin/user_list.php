@@ -1,13 +1,130 @@
 <?php
+ob_start();
 session_start();
 include_once("header.php");
 
-if (!isset($_SESSION["admin_token"])) { 
+if (!isset($_SESSION["admin_token"])) {
     header("location: index.php");
     exit;
-} 
+}
+if (($admin_role ?? 'admin') !== 'admin') {
+    http_response_code(403);
+    exit('এই কাজটি শুধু পূর্ণ অ্যাডমিন করতে পারবেন।');
+}
 
-$users_query = $conn->query("SELECT * FROM users ORDER BY id DESC");
+$roleSchemaReady = sheba_ensure_admin_role_column($conn);
+if (empty($_SESSION['admin_csrf'])) {
+    $_SESSION['admin_csrf'] = bin2hex(random_bytes(32));
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'change_user_role') {
+    $roleFlash = ['type' => 'error', 'message' => 'Role পরিবর্তন করা যায়নি।'];
+    $submittedCsrf = (string)($_POST['csrf_token'] ?? '');
+    if (!hash_equals((string)$_SESSION['admin_csrf'], $submittedCsrf)) {
+        $roleFlash['message'] = 'নিরাপত্তা যাচাই ব্যর্থ হয়েছে। আবার চেষ্টা করুন।';
+    } elseif (!$roleSchemaReady) {
+        $roleFlash['message'] = 'Role management-এর database columns প্রস্তুত নেই।';
+    } else {
+        $userId = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
+        $targetRole = strtolower(trim((string)($_POST['target_role'] ?? '')));
+        if (!$userId || !in_array($targetRole, ['user', 'admin', 'moderator'], true)) {
+            $roleFlash['message'] = 'সঠিক ইউজার ও role নির্বাচন করুন।';
+        } else {
+            $userStmt = $conn->prepare('SELECT id, name, email, status, password FROM users WHERE id = ? LIMIT 1');
+            if (!$userStmt) {
+                $roleFlash['message'] = 'ইউজার তথ্য পড়া যায়নি।';
+            } else {
+                $userStmt->bind_param('i', $userId);
+                $userStmt->execute();
+                $siteUser = $userStmt->get_result()->fetch_assoc();
+                $userStmt->close();
+                if (!$siteUser) {
+                    $roleFlash['message'] = 'ইউজারটি পাওয়া যায়নি।';
+                } else {
+                    $email = strtolower(trim((string)$siteUser['email']));
+                    $accountStmt = $conn->prepare('SELECT id, `role`, token, moderator_permissions FROM admin_user WHERE email = ? LIMIT 1');
+                    $existingAccount = null;
+                    if ($accountStmt) {
+                        $accountStmt->bind_param('s', $email);
+                        $accountStmt->execute();
+                        $existingAccount = $accountStmt->get_result()->fetch_assoc();
+                        $accountStmt->close();
+                    }
+                    $oldRole = strtolower((string)($existingAccount['role'] ?? 'user'));
+                    $isAdminDemotion = $existingAccount && $oldRole === 'admin' && $targetRole !== 'admin';
+                    $isSelfDemotion = $isAdminDemotion && (int)$existingAccount['id'] === (int)($admin_id ?? 0);
+                    $lastAdminDemotion = false;
+                    if ($isAdminDemotion) {
+                        $adminCount = $conn->query("SELECT COUNT(*) AS total FROM admin_user WHERE `role` = 'admin' AND status = 1");
+                        $lastAdminDemotion = !$adminCount || (int)($adminCount->fetch_assoc()['total'] ?? 0) <= 1;
+                        if ($adminCount) { $adminCount->free(); }
+                    }
+                    if ($isSelfDemotion || $lastAdminDemotion) {
+                        $roleFlash['message'] = $isSelfDemotion
+                            ? 'নিজের Admin role নিজে পরিবর্তন করা যাবে না।'
+                            : 'সর্বশেষ সক্রিয় Admin-এর role পরিবর্তন করা যাবে না।';
+                    } elseif ($targetRole === 'user') {
+                        if ($existingAccount) {
+                            $accountId = (int)$existingAccount['id'];
+                            $demote = $conn->prepare("UPDATE admin_user SET `role` = 'user', moderator_permissions = NULL WHERE id = ?");
+                            if ($demote) {
+                                $demote->bind_param('i', $accountId);
+                                $ok = $demote->execute();
+                                $demote->close();
+                            } else { $ok = false; }
+                        } else { $ok = true; }
+                        $roleFlash = ['type' => $ok ? 'success' : 'error', 'message' => $ok ? 'ইউজারকে সাধারণ User role-এ ফিরিয়ে দেওয়া হয়েছে।' : 'Role পরিবর্তন করা যায়নি।'];
+                    } else {
+                        $token = trim((string)($existingAccount['token'] ?? ''));
+                        if ($token === '') { $token = bin2hex(random_bytes(32)); }
+                        if ($targetRole === 'moderator' && $oldRole === 'moderator') {
+                            $permissions = json_decode((string)($existingAccount['moderator_permissions'] ?? ''), true);
+                            if (!is_array($permissions)) { $permissions = sheba_default_permissions(); }
+                        } else {
+                            $permissions = sheba_default_permissions();
+                        }
+                        $permissionJson = json_encode($permissions);
+                        if ($existingAccount) {
+                            $accountId = (int)$existingAccount['id'];
+                            $update = $conn->prepare('UPDATE admin_user SET `role` = ?, moderator_permissions = ?, token = ? WHERE id = ?');
+                            if ($update) {
+                                $update->bind_param('sssi', $targetRole, $permissionJson, $token, $accountId);
+                                $ok = $update->execute();
+                                $update->close();
+                            } else { $ok = false; }
+                        } else {
+                            $name = trim((string)($siteUser['name'] ?? '')) ?: $email;
+                            $status = (int)($siteUser['status'] ?? 0) === 1 ? 1 : 0;
+                            $passwordHash = (string)$siteUser['password'];
+                            $insert = $conn->prepare('INSERT INTO admin_user (name, email, status, password, balance, token, `role`, moderator_permissions) VALUES (?, ?, ?, ?, 0, ?, ?, ?)');
+                            if ($insert) {
+                                $insert->bind_param('ssissss', $name, $email, $status, $passwordHash, $token, $targetRole, $permissionJson);
+                                $ok = $insert->execute();
+                                $insert->close();
+                            } else { $ok = false; }
+                        }
+                        if ($ok) {
+                            $loginUrl = '/admin/index.php?admin_token=' . rawurlencode($token);
+                            $roleLabel = $targetRole === 'admin' ? 'Admin' : 'Moderator';
+                            $passwordHint = $existingAccount ? 'আগের admin panel password' : 'তার বর্তমান user account password';
+                            $roleFlash = ['type' => 'success', 'message' => $roleLabel . ' role সেট হয়েছে। প্রবেশের link-টি নিরাপদে সংশ্লিষ্ট ব্যক্তিকে দিন; তিনি assigned email এবং ' . $passwordHint . ' দিয়ে sign in করবেন।', 'login_url' => $loginUrl];
+                        } else {
+                            $roleFlash['message'] = 'Role পরিবর্তন করা যায়নি।';
+                        }
+                    }
+                }
+            }
+        }
+    }
+    $_SESSION['user_list_role_flash'] = $roleFlash;
+    if (ob_get_level() > 0) { ob_clean(); }
+    header('Location: user_list.php', true, 303);
+    exit;
+}
+
+$roleFlash = $_SESSION['user_list_role_flash'] ?? null;
+unset($_SESSION['user_list_role_flash']);
+$users_query = $conn->query("SELECT u.*, a.`role` AS admin_role FROM users u LEFT JOIN admin_user a ON a.email = u.email ORDER BY u.id DESC");
 $total_users_count = 0;
 $active_users_count = 0;
 $total_user_balance = 0.00;
@@ -22,9 +139,6 @@ if ($users_query && $users_query->num_rows > 0) {
         }
         $total_user_balance += floatval($r['balance'] ?? 0);
     }
-}
-if (empty($_SESSION['admin_csrf'])) {
-    $_SESSION['admin_csrf'] = bin2hex(random_bytes(32));
 }
 ?>
 
@@ -61,6 +175,16 @@ if (empty($_SESSION['admin_csrf'])) {
             </button>
         </div>
     </div>
+
+    <?php if ($roleFlash): ?>
+        <div class="rounded-xl border px-4 py-3 text-sm <?php echo ($roleFlash['type'] ?? '') === 'error' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'; ?>">
+            <?php echo htmlspecialchars((string)($roleFlash['message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+            <?php if (!empty($roleFlash['login_url'])): ?>
+                <div class="mt-2 break-all">Admin panel sign-in link: <a class="font-bold underline" target="_blank" rel="noopener" href="<?php echo htmlspecialchars($roleFlash['login_url'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($roleFlash['login_url'], ENT_QUOTES, 'UTF-8'); ?></a></div>
+                <div class="mt-1 text-xs">লিংকটি গোপন রাখুন ও শুধু নির্দিষ্ট ব্যক্তিকে দিন। লিংক খুলে assigned email এবং তার বিদ্যমান password দিয়ে sign in করতে হবে।</div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 
     <!-- Stats Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -109,6 +233,7 @@ if (empty($_SESSION['admin_csrf'])) {
                         <th class="p-3.5">লগইন লিংক ও টোকেন</th>
                         <th class="p-3.5 text-center">ব্যালেন্স ও রিচার্জ</th>
                         <th class="p-3.5 text-center">স্ট্যাটাস</th>
+                        <th class="p-3.5 text-center">Admin / Moderator Role</th>
                         <th class="p-3.5 text-center">পাসওয়ার্ড</th>
                         <th class="p-3.5 text-center">অ্যাকশন</th>
                     </tr>
@@ -123,6 +248,8 @@ if (empty($_SESSION['admin_csrf'])) {
                             $token    = $u["token"] ?? '';
                             $balance  = number_format(floatval($u["balance"] ?? 0), 2);
                             $status   = intval($u["status"] ?? 0);
+                            $role     = strtolower((string)($u["admin_role"] ?? 'user'));
+                            if (!in_array($role, ['user', 'admin', 'moderator'], true)) { $role = 'user'; }
                             $login_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/index.php?text_token=" . $token;
                         ?>
                         <tr class="hover:bg-slate-50/80 transition">
@@ -185,6 +312,20 @@ if (empty($_SESSION['admin_csrf'])) {
                                         <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> বন্ধ
                                     </a>
                                 <?php endif; ?>
+                            </td>
+
+                            <td class="p-3.5 text-center">
+                                <form method="post" action="user_list.php" class="flex flex-col items-center gap-1.5">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['admin_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    <input type="hidden" name="action" value="change_user_role">
+                                    <input type="hidden" name="user_id" value="<?php echo (int)$uid; ?>">
+                                    <select name="target_role" class="max-w-[130px] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] font-bold" aria-label="<?php echo htmlspecialchars($email, ENT_QUOTES, 'UTF-8'); ?> এর role">
+                                        <option value="user" <?php echo $role === 'user' ? 'selected' : ''; ?>>সাধারণ User</option>
+                                        <option value="moderator" <?php echo $role === 'moderator' ? 'selected' : ''; ?>>Moderator</option>
+                                        <option value="admin" <?php echo $role === 'admin' ? 'selected' : ''; ?>>Admin</option>
+                                    </select>
+                                    <button type="submit" class="rounded-lg bg-indigo-600 px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-indigo-700">Role সংরক্ষণ</button>
+                                </form>
                             </td>
 
                             <td class="p-3.5 text-center">
