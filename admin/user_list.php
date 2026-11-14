@@ -356,6 +356,18 @@ if ($users_query && $users_query->num_rows > 0) {
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 
 <style>
+    /* Keep the customer/role table readable against the dark admin shell. */
+    #userTable { color: #0f172a !important; background: #ffffff !important; }
+    #userTable thead th { color: #0f172a !important; background: #e2e8f0 !important; border-color: #cbd5e1 !important; }
+    #userTable tbody td { color: #334155 !important; background: #ffffff !important; border-color: #e2e8f0 !important; }
+    #userTable tbody tr:nth-child(even) td { background: #f8fafc !important; }
+    #userTable tbody td .text-slate-400,
+    #userTable tbody td .text-slate-500 { color: #475569 !important; }
+    #userTable tbody td .text-slate-800 { color: #0f172a !important; }
+    #userTable select { color: #0f172a !important; background-color: #ffffff !important; }
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info { color: #334155 !important; }
     .dataTables_wrapper .dataTables_length select {
         padding: 5px 25px 5px 10px;
         border-radius: 10px;
