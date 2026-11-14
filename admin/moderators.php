@@ -217,7 +217,7 @@ $result = $schemaReady ? $conn->query("SELECT id, name, email, status, moderator
 if (!$schemaReady && !$flash) { $flash = ['type' => 'error', 'message' => 'মডারেটর ফিচারের ডাটাবেজ কলাম যোগ হয়নি। SQL migration চালান: admin/migrations/001_admin_role.sql']; }
 if ($result) { while ($row = $result->fetch_assoc()) { $moderators[] = $row; } $result->free(); }
 $escape = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-$renderPermissions = static function (array $permissions, string $escape) use ($permissionLabels) {
+$renderPermissions = static function (array $permissions, callable $escape) use ($permissionLabels) {
     foreach ($permissionLabels as $key => $label) {
         $checked = !empty($permissions[$key]) ? 'checked' : '';
         echo '<label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-2 text-xs text-slate-700"><input type="checkbox" name="permissions[' . $key . ']" value="1" ' . $checked . '> ' . $escape($label) . '</label>';
