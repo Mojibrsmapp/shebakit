@@ -125,7 +125,7 @@ $h_stmt->close();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
+    <link rel="shortcut icon" type="image/jpeg" href="/assets/logo.jpg">
     
     <style>
         * {
@@ -398,7 +398,7 @@ $h_stmt->close();
                 <i class="fa-solid fa-bars"></i>
             </button>
             <a href="dashboard.php" class="flex items-center">
-                <img src="/assets/logo_nav.png" alt="ShebaKit Logo" class="header-logo">
+                <img src="/assets/logo_nav.png" alt="ShebaKit Logo" class="header-logo" onerror="this.onerror=null;this.src='/assets/logo.jpg';">
             </a>
         </div>
 

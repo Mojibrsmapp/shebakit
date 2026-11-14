@@ -147,7 +147,7 @@ $amount = isset($_GET['amount']) ? $_GET['amount'] : 0;
 
     <div class="payment-container shadow-sm">
         <!-- Logo -->
-        <img src="https://goriberseba.top/assets/images/logo.png" alt="Business Logo" class="logo" />
+        <img src="/assets/logo_nav.png" alt="ShebaKit Logo" class="logo" />
 
         <!-- Business Name -->
         <div class="business-name">পেমেন্ট অপসন সিলেক্ট করুন </div>

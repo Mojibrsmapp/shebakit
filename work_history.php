@@ -7,8 +7,8 @@ $wa_group   = get_site_setting($conn, "whatsapp_group", "");
 ?>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
-<link rel="icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
+<link rel="shortcut icon" type="image/jpeg" href="/assets/logo.jpg">
+<link rel="icon" type="image/jpeg" href="/assets/logo.jpg">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Hind+Siliguri:wght@500;600;700&display=swap" rel="stylesheet">
 
 <style>

@@ -181,7 +181,7 @@ if ($h_stmt) {
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
+    <link rel="shortcut icon" type="image/jpeg" href="/assets/logo.jpg">
     
     <style>
         * {
@@ -457,7 +457,7 @@ if ($h_stmt) {
                 <i class="fa-solid fa-bars"></i>
             </button>
             <a href="dashboard.php" class="flex items-center">
-                <img src="/assets/logo_nav.png" alt="ShebaKit Logo" class="header-logo">
+                <img src="/assets/logo_nav.png" alt="ShebaKit Logo" class="header-logo" onerror="this.onerror=null;this.src='/assets/logo.jpg';">
             </a>
         </div>
 
