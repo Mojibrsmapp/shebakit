@@ -65,7 +65,7 @@ $telegram_link = get_site_setting($conn, 'telegram_link', '#');
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
+    <link rel="shortcut icon" type="image/jpeg" href="/assets/logo.jpg">
 
     <style>
         /* Theme Switching Variables */

@@ -54,14 +54,14 @@ if ($q_num) { while ($r = $q_num->fetch_assoc()) { $status_map['num_' . $r['oper
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Dashboard - ICONIC ONLINE FAST SERVICE</title>
+    <title>Dashboard - ShebaKit</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
+    <link rel="shortcut icon" type="image/jpeg" href="/assets/logo.jpg">
     
     <style>
         * {
@@ -456,7 +456,7 @@ if ($q_num) { while ($r = $q_num->fetch_assoc()) { $status_map['num_' . $r['oper
     <header class="top-navbar">
         <div class="flex items-center gap-3">
             <a href="user Dashboad.php" class="flex items-center">
-                <img src="https://shebakitonline.xyz/assets/logo_nav.png" alt="ShebaKit Logo" class="header-logo">
+                <img src="/assets/logo_nav.png" alt="ShebaKit Logo" class="header-logo" onerror="this.onerror=null;this.src='/assets/logo.jpg';">
             </a>
         </div>
 
@@ -486,7 +486,7 @@ if ($q_num) { while ($r = $q_num->fetch_assoc()) { $status_map['num_' . $r['oper
 
             <div class="flex-1 overflow-hidden">
                 <div class="flex items-center gap-1.5 text-xs text-amber-600 font-bold mb-0.5">
-                    <i class="fa-solid fa-star text-[10px]"></i> ICONIC VIP
+                    <i class="fa-solid fa-star text-[10px]"></i> ShebaKit VIP
                 </div>
                 <h4 class="font-extrabold text-slate-800 text-base truncate"><?php echo htmlspecialchars($name); ?></h4>
                 <p class="text-xs text-slate-500 truncate"><?php echo htmlspecialchars($email); ?></p>

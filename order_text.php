@@ -120,13 +120,13 @@ if ($h_stmt) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>অর্ডার টেক্সট সার্ভিস - ICONIC</title>
+    <title>অর্ডার টেক্সট সার্ভিস - ShebaKit</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
+    <link rel="shortcut icon" type="image/jpeg" href="/assets/logo.jpg">
 
     <style>
         body { font-family: 'Hind Siliguri', 'Plus Jakarta Sans', sans-serif; background: #F1F5F9; color: #1E293B; }
@@ -145,7 +145,7 @@ if ($h_stmt) {
     <header class="top-navbar">
         <div class="flex items-center gap-3">
             <a href="dashboard.php">
-                <img src="https://shebakitonline.xyz/assets/logo_nav.png" alt="Logo" class="header-logo">
+                <img src="/assets/logo_nav.png" alt="ShebaKit Logo" class="header-logo" onerror="this.onerror=null;this.src='/assets/logo.jpg';">
             </a>
         </div>
         <div class="balance-badge-top" onclick="location.href='recharge.php'">

@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- endinject -->
-     <link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
+     <link rel="shortcut icon" type="image/jpeg" href="/assets/logo.jpg">
     <style>
         body {
             background: #f0f2f5;
@@ -208,7 +208,7 @@ document.getElementById("cancelButton").addEventListener("click", function () {
         cancelButtonColor: '#6b7280',
     }).then((result) => {
         if (result.isConfirmed) {
-            window.location.href = "https://goriberseba.top/recharge.php";
+            window.location.href = "/recharge.php";
         }
     });
 });
@@ -226,7 +226,7 @@ Swal.fire({
         timer: 3000,
         didOpen: () => Swal.showLoading(),
         willClose: () => {
-            window.location.href = 'https://goriberseba.top/recharge.php';
+            window.location.href = '/recharge.php';
         }
     });
 });

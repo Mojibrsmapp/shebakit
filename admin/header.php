@@ -78,7 +78,7 @@ if ($documentRoot && $logoFallbackFile && strpos($logoFallbackFile, rtrim($docum
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
+    <link rel="shortcut icon" type="image/jpeg" href="/assets/logo.jpg">
 
     <style>
         * {
@@ -205,8 +205,8 @@ if ($documentRoot && $logoFallbackFile && strpos($logoFallbackFile, rtrim($docum
             <a href="dashboard.php" class="flex items-center gap-2.5 no-underline">
                 <img src="<?php echo htmlspecialchars($adminLogoSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="ShebaKit Logo" class="h-7 w-auto" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($adminLogoFallback, ENT_QUOTES, 'UTF-8'); ?>';">
                 <div>
-                    <span class="text-[11px] font-black tracking-wider block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">MASTER ENGINE</span>
-                    <span class="text-[9.5px] text-purple-300/60 font-semibold block">v2.4 Control Hub</span>
+                    <span class="text-[11px] font-black tracking-wider block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">ShebaKit</span>
+                    <span class="text-[9.5px] text-purple-300/60 font-semibold block">অ্যাডমিন প্যানেল</span>
                 </div>
             </a>
             <button type="button" id="closeSidebarBtn" class="lg:hidden text-slate-400 hover:text-white text-base">
