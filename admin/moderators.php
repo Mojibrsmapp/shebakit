@@ -4,6 +4,45 @@ include_once __DIR__ . '/header.php';
 if (($admin_role ?? 'admin') !== 'admin') { http_response_code(403); exit('এই পেজটি শুধু পূর্ণ অ্যাডমিনের জন্য।'); }
 $schemaReady = sheba_ensure_admin_role_column($conn);
 if (empty($_SESSION['moderator_csrf'])) { $_SESSION['moderator_csrf'] = bin2hex(random_bytes(32)); }
+
+// Live lookup in the create-moderator form helps distinguish existing site users.
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['lookup_user']) && $schemaReady) {
+    $lookupEmail = strtolower(trim((string)$_GET['lookup_user']));
+    $lookupResponse = ['found' => false];
+    if (filter_var($lookupEmail, FILTER_VALIDATE_EMAIL)) {
+        $lookupStmt = $conn->prepare('SELECT id, name, email, status FROM users WHERE email = ? LIMIT 1');
+        if ($lookupStmt) {
+            $lookupStmt->bind_param('s', $lookupEmail);
+            $lookupStmt->execute();
+            $lookupUser = $lookupStmt->get_result()->fetch_assoc();
+            $lookupStmt->close();
+            if ($lookupUser) {
+                $roleStmt = $conn->prepare('SELECT `role` FROM admin_user WHERE email = ? LIMIT 1');
+                $currentRole = '';
+                if ($roleStmt) {
+                    $roleStmt->bind_param('s', $lookupEmail);
+                    $roleStmt->execute();
+                    $roleRow = $roleStmt->get_result()->fetch_assoc();
+                    $currentRole = strtolower((string)($roleRow['role'] ?? ''));
+                    $roleStmt->close();
+                }
+                $lookupResponse = [
+                    'found' => true,
+                    'id' => (int)$lookupUser['id'],
+                    'name' => (string)($lookupUser['name'] ?? ''),
+                    'email' => (string)$lookupUser['email'],
+                    'status' => (int)($lookupUser['status'] ?? 0),
+                    'role' => $currentRole,
+                ];
+            }
+        }
+    }
+    if (ob_get_level() > 0) { ob_clean(); }
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($lookupResponse);
+    exit;
+}
+
 $permissionLabels = [
     'orders' => 'অর্ডার দেখা',
     'history' => 'হিস্টোরি দেখা',
@@ -198,7 +237,8 @@ $renderPermissions = static function (array $permissions, string $escape) use ($
         <h3 class="font-bold text-slate-800 mb-4">নতুন মডারেটর যোগ করুন ও দেখার অনুমতি দিন</h3>
         <form method="post" class="space-y-4">
             <input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['moderator_csrf']) ?>"><input type="hidden" name="action" value="create">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3"><label class="text-sm text-slate-600">নাম<input class="mt-1 block w-full rounded-xl border border-slate-300 p-3" name="name" maxlength="255" required></label><label class="text-sm text-slate-600">ইমেইল<input class="mt-1 block w-full rounded-xl border border-slate-300 p-3" type="email" name="email" maxlength="255" required></label></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3"><label class="text-sm text-slate-600">নাম<input id="newModeratorName" class="mt-1 block w-full rounded-xl border border-slate-300 p-3" name="name" maxlength="255" required></label><label class="text-sm text-slate-600">ইমেইল<input id="newModeratorEmail" class="mt-1 block w-full rounded-xl border border-slate-300 p-3" type="email" name="email" maxlength="255" required></label></div>
+            <div id="existingUserLookup" class="text-xs" aria-live="polite"></div>
             <div class="flex flex-wrap gap-2"><?php $createPermissions = array_fill_keys(array_keys(sheba_default_permissions()), true); $renderPermissions($createPermissions, $escape); ?></div>
             <button class="rounded-xl bg-indigo-600 text-white font-bold px-5 py-3 hover:bg-indigo-700" type="submit">মডারেটর তৈরি করুন</button>
         </form>
@@ -239,4 +279,96 @@ $renderPermissions = static function (array $permissions, string $escape) use ($
         </div>
     </section>
 </div>
+<script>
+(() => {
+    const emailInput = document.getElementById('newModeratorEmail');
+    const nameInput = document.getElementById('newModeratorName');
+    const lookupBox = document.getElementById('existingUserLookup');
+    if (!emailInput || !lookupBox) return;
+
+    const csrfToken = <?= json_encode((string)$_SESSION['moderator_csrf']) ?>;
+    let timer = null;
+    let controller = null;
+    const showMessage = (text, color = 'text-slate-500') => {
+        lookupBox.replaceChildren();
+        const message = document.createElement('p');
+        message.className = color;
+        message.textContent = text;
+        lookupBox.appendChild(message);
+    };
+
+    emailInput.addEventListener('input', () => {
+        clearTimeout(timer);
+        if (controller) controller.abort();
+        const email = emailInput.value.trim();
+        lookupBox.replaceChildren();
+        if (!email || !emailInput.checkValidity()) return;
+
+        timer = setTimeout(async () => {
+            controller = new AbortController();
+            showMessage('এই ইমেইল দিয়ে ইউজার খোঁজা হচ্ছে…');
+            try {
+                const response = await fetch('moderators.php?lookup_user=' + encodeURIComponent(email), {
+                    credentials: 'same-origin',
+                    signal: controller.signal,
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error('lookup failed');
+                const user = await response.json();
+                if (emailInput.value.trim().toLowerCase() !== email.toLowerCase()) return;
+                lookupBox.replaceChildren();
+                if (!user.found) {
+                    showMessage('এই ইমেইলে কোনো বর্তমান সাইট ইউজার পাওয়া যায়নি। নতুন মডারেটর তৈরি করতে নাম পূরণ করে নিচের বোতাম চাপুন।', 'text-amber-700');
+                    return;
+                }
+
+                if (nameInput && !nameInput.value.trim()) nameInput.value = user.name || '';
+                const details = document.createElement('p');
+                details.className = 'mb-2 font-semibold text-emerald-700';
+                details.textContent = 'বর্তমান ইউজার পাওয়া গেছে: ' + (user.name || user.email) + ' · বর্তমান Role: ' + (user.role || 'সাধারণ ইউজার');
+                lookupBox.appendChild(details);
+
+                const form = document.createElement('form');
+                form.method = 'post';
+                form.className = 'flex flex-wrap items-center gap-2 rounded-xl bg-indigo-50 p-3';
+                const hiddenFields = { csrf_token: csrfToken, action: 'assign_existing', user_id: String(user.id) };
+                Object.entries(hiddenFields).forEach(([key, value]) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = value;
+                    form.appendChild(input);
+                });
+                const roleLabel = document.createElement('label');
+                roleLabel.className = 'text-slate-700';
+                roleLabel.textContent = 'এই ইউজারকে করুন: ';
+                const roleSelect = document.createElement('select');
+                roleSelect.name = 'target_role';
+                roleSelect.className = 'ml-1 rounded-lg border border-slate-300 bg-white p-2';
+                [['moderator', 'Moderator'], ['admin', 'Admin']].forEach(([value, label]) => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = label;
+                    if (user.role === value || (!user.role && value === 'moderator')) option.selected = true;
+                    roleSelect.appendChild(option);
+                });
+                roleLabel.appendChild(roleSelect);
+                form.appendChild(roleLabel);
+                const button = document.createElement('button');
+                button.type = 'submit';
+                button.className = 'rounded-lg bg-indigo-600 px-4 py-2 font-bold text-white hover:bg-indigo-700';
+                button.textContent = 'Role আপডেট করুন';
+                form.appendChild(button);
+                lookupBox.appendChild(form);
+                const note = document.createElement('p');
+                note.className = 'mt-2 text-slate-500';
+                note.textContent = 'বিদ্যমান ইউজারের পাসওয়ার্ডই থাকবে; নতুন অ্যাকাউন্ট তৈরি হবে না।';
+                lookupBox.appendChild(note);
+            } catch (error) {
+                if (error.name !== 'AbortError') showMessage('ইউজার খোঁজা যায়নি। আবার চেষ্টা করুন।', 'text-rose-700');
+            }
+        }, 350);
+    });
+})();
+</script>
 <?php include_once __DIR__ . '/footer.php'; ?>
