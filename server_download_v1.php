@@ -54,7 +54,7 @@ $signPath         = $data['sign_path']           ?? '';
 $photoPath        = $data['photo']               ?? '';
 
 /* ============ Photo Local Save ============ */
-$displayPhoto = 'assets/images/no-photo.png';
+$displayPhoto = 'assets/logo.jpg';
 if (!empty($photoPath)) {
     if (preg_match('/^https?:\/\//i', $photoPath)) {
         $localDir = 'uploads/photos/';
@@ -182,7 +182,7 @@ if (!is_numeric($voter_no)) { $s_v = "V2"; }
         <div style="position: absolute; left: 42.4%; top: 16.8%;">
             <img id="photo" src="<?php echo htmlspecialchars($displayPhoto); ?>"
                  referrerpolicy="no-referrer"
-                 onerror="this.onerror=null; this.src='assets/images/no-photo.png';"
+                 onerror="this.onerror=null; this.src='assets/logo.jpg';"
                  height="140px" width="121px" style="border-radius: 10px"/>
         </div>
     </div>

@@ -223,7 +223,7 @@
                                     <label class="form-label-custom" for="imageUrl1"><i class="fas fa-camera text-primary"></i> ছবি আপলোড</label>
                                     <input class="form-control form-control-custom" type="file" id="imageUrl1" name="imageUrl1" accept="image/*">
                                 </div>
-                                <img id="imageUrl1_url" class="preview-img" src="assets/images/placeholder.png" alt="Profile">
+                                <img id="imageUrl1_url" class="preview-img" src="assets/logo.jpg" alt="Profile">
                             </div>
                         </div>
 
@@ -233,7 +233,7 @@
                                     <label class="form-label-custom" for="imageUrl2"><i class="fas fa-file-signature text-info"></i> স্বাক্ষর আপলোড</label>
                                     <input class="form-control form-control-custom" type="file" id="imageUrl2" name="imageUrl2" accept="image/*">
                                 </div>
-                                <img id="imageUrl2_url" class="preview-img" src="assets/images/placeholder.png" alt="Signature">
+                                <img id="imageUrl2_url" class="preview-img" src="assets/logo.jpg" alt="Signature">
                             </div>
                         </div>
                     </div>

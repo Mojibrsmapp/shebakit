@@ -1,6 +1,20 @@
 <?php
 session_start();
 include_once("includes/configuration.php");
+require_once __DIR__ . "/../includes/upload_validation.php";
+
+$adminToken = (string)($_SESSION['admin_token'] ?? '');
+$auth = $conn->prepare('SELECT id FROM admin_user WHERE token = ? LIMIT 1');
+$auth->bind_param('s', $adminToken);
+$auth->execute();
+$isAdmin = (bool)$auth->get_result()->fetch_assoc();
+$auth->close();
+if ($adminToken === '' || !$isAdmin) {
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+    exit;
+}
 
 // Function to generate a random string (24 characters)
 function generateRandomString($length = 24) {
@@ -21,7 +35,7 @@ if (isset($_FILES['pdf'])) {
 
         // Validate the file type
         $fileType = strtolower(pathinfo($pdf["name"], PATHINFO_EXTENSION));
-        if ($fileType !== "pdf") {
+        if ($fileType !== "pdf" || !shebakit_valid_upload($pdf)) {
             $response[] = "Invalid file type for: " . htmlspecialchars($pdf['name']);
             continue;
         }

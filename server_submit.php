@@ -2,12 +2,12 @@
 session_start();
 
 if (!isset($_SESSION["user_id"])) {
-    header("location: ../index.php");
+    header("Location: index.php");
     exit;
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    header("location: ../index.php");
+    header("Location: index.php");
     exit;
 }
 
@@ -118,11 +118,11 @@ if ($rowBalance = $resultBalance->fetch_assoc()) {
     $currentBalance = $rowBalance['balance'];
 
     if ($currentBalance < $nid_make) {
-        echo "<script>alert('Insufficient balance. Your balance is too low to proceed.'); window.location.href='../index.php';</script>";
+        echo "<script>alert('Insufficient balance. Your balance is too low to proceed.'); window.location.href='index.php';</script>";
         exit;
     }
 } else {
-    echo "<script>alert('User balance not found.'); window.location.href='../index.php';</script>";
+    echo "<script>alert('User balance not found.'); window.location.href='index.php';</script>";
     exit;
 }
 $dob = null;

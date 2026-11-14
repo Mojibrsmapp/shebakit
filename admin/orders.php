@@ -1,15 +1,37 @@
 <?php
+ob_start();
 include_once("header.php");
+require_once __DIR__ . "/../includes/upload_validation.php";
 
 $filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+$admin_orders_flash = (string)($_SESSION['admin_orders_flash'] ?? '');
+unset($_SESSION['admin_orders_flash']);
+if (empty($_SESSION['admin_orders_csrf'])) { $_SESSION['admin_orders_csrf'] = bin2hex(random_bytes(32)); }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_order'])) {$order_id = intval($_POST['order_id'] ?? 0);$new_status = trim($_POST['status'] ?? 'pending');$result_text = trim($_POST['result_text'] ?? '');$result_file_path = null;
-    if (isset($_FILES['result_file']) && $_FILES['result_file']['error'] === 0) {$upDir = "uploads/results/";
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_order'])) {
+    if (!hash_equals($_SESSION['admin_orders_csrf'], (string)($_POST['csrf_token'] ?? ''))) {
+        $_SESSION['admin_orders_flash'] = 'ফর্ম যাচাই ব্যর্থ হয়েছে। আবার চেষ্টা করুন।';
+        if (ob_get_level() > 0) { ob_clean(); }
+        header('Location: orders.php?status=' . rawurlencode($filter_status), true, 303);
+        exit();
+    }
+    $order_id = max(0, intval($_POST['order_id'] ?? 0));
+    $new_status = trim($_POST['status'] ?? 'pending');
+    if (!in_array($new_status, ['pending', 'success', 'cancel'], true)) { $new_status = 'pending'; }
+    $result_text = trim($_POST['result_text'] ?? '');
+    $result_file_path = null;
+    if (isset($_FILES['result_file']) && $_FILES['result_file']['error'] !== UPLOAD_ERR_NO_FILE && !shebakit_valid_upload($_FILES['result_file'])) {
+        $_SESSION['admin_orders_flash'] = 'ফাইলটি গ্রহণ করা যায়নি। PDF, JPG, PNG, WEBP বা TXT (সর্বোচ্চ ২০ MB) দিন।';
+        if (ob_get_level() > 0) { ob_clean(); }
+        header('Location: orders.php?status=' . rawurlencode($filter_status), true, 303);
+        exit();
+    }
+    if (isset($_FILES['result_file']) && $_FILES['result_file']['error'] === 0 && shebakit_valid_upload($_FILES['result_file'])) {$upDir = "uploads/results/";
         if (!is_dir($upDir)) {
             mkdir($upDir, 0755, true);
         }
         $ext = strtolower(pathinfo($_FILES["result_file"]["name"], PATHINFO_EXTENSION));
-        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'zip', 'txt'];
+        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'txt'];
         if (in_array($ext, $allowed)) {$newFilename = "res_" . $order_id . "_" . time() . "." . $ext;
             $targetPath = $upDir .$newFilename;
             if (move_uploaded_file($_FILES["result_file"]["tmp_name"], $targetPath)) {
@@ -29,8 +51,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_order'])) {$ord
         }
         $stmt->execute();$stmt->close();
     }
-    
-    echo "<script>window.location.href='orders.php?status=" . urlencode($filter_status) . "';</script>";
+
+    if (ob_get_level() > 0) { ob_clean(); }
+    header('Location: orders.php?status=' . rawurlencode($filter_status), true, 303);
     exit();
 }
 
@@ -56,7 +79,7 @@ if (!empty($filter_status)) {$where_clauses[] = "o.status = ?";
 }
 
 if (!empty($search_query)) {$where_clauses[] = "(o.input_data LIKE ? OR o.order_type LIKE ? OR u.name LIKE ? OR u.mobile LIKE ?)";
-    $like = "\%" . $search_query . "%";
+    $like = "%" . $search_query . "%";
     $params[] =$like;
     $params[] =$like;
     $params[] =$like;
@@ -66,10 +89,10 @@ if (!empty($search_query)) {$where_clauses[] = "(o.input_data LIKE ? OR o.order_
 
 $where_sql = !empty($where_clauses) ? "WHERE " . implode(" AND ", $where_clauses) : "";
 
-$sql = "SELECT o.*, u.name as user_name, u.mobile as user_phone 
-        FROM orders o 
-        LEFT JOIN users u ON u.id = o.user_id 
-        $where_sql 
+$sql = "SELECT o.*, u.name as user_name, u.mobile as user_phone
+        FROM orders o
+        LEFT JOIN users u ON u.id = o.user_id
+        $where_sql
         ORDER BY o.created_at DESC LIMIT 100";
 
 $stmt = $conn->prepare($sql);
@@ -181,6 +204,7 @@ if ($c_res &&$c_res->num_rows > 0) {
 </style>
 
 <div class="container-fluid px-3 px-md-4 py-4">
+    <?php if ($admin_orders_flash !== ''): ?><div class="bg-rose-50 text-rose-700 border border-rose-200 rounded-xl px-4 py-3 mb-3 text-sm"><?php echo htmlspecialchars($admin_orders_flash, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
 
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
         <div>
@@ -198,7 +222,7 @@ if ($c_res &&$c_res->num_rows > 0) {
 
     <div class="panel-card p-4">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            
+
             <div class="flex flex-wrap items-center gap-2">
                 <a href="orders.php" class="status-tab <?php echo empty($filter_status) ? 'active' : ''; ?>">
                     <i class="fa-solid fa-list-ul"></i> সকল অর্ডার (<?php echo $counts['total']; ?>)
@@ -252,7 +276,7 @@ if ($c_res &&$c_res->num_rows > 0) {
                             <td colspan="9" class="text-center py-8 text-slate-400 text-xs">কোনো অর্ডার তথ্য পাওয়া যায়নি</td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($orders_list as$row): 
+                        <?php foreach ($orders_list as$row):
                             $st_badge = 'bg-amber-50 text-amber-700 border border-amber-200';$st_text = 'পেন্ডিং';
                             if ($row['status'] === 'success') {
                                 $st_badge = 'bg-emerald-50 text-emerald-700 border border-emerald-200';$st_text = 'সফল';
@@ -325,6 +349,7 @@ if ($c_res &&$c_res->num_rows > 0) {
         </div>
 
         <form action="" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['admin_orders_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="order_id" id="modalOrderId">
 
             <div class="mb-3">

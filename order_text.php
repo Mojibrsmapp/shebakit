@@ -1,10 +1,10 @@
-<?php 
+<?php
 session_start();
 include_once("includes/configuration.php");
 
 if (isset($_SESSION['user_token'])) {
     $token_user = $_SESSION['user_token'];
-    
+
     $stmt = $conn->prepare("SELECT id, balance, email, name, token, mobile FROM users WHERE token = ?");
     if ($stmt) {
         $stmt->bind_param("s", $token_user);
@@ -121,13 +121,13 @@ if ($h_stmt) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>অর্ডার টেক্সট সার্ভিস - ICONIC</title>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
-    
+
     <style>
         body { font-family: 'Hind Siliguri', 'Plus Jakarta Sans', sans-serif; background: #F1F5F9; color: #1E293B; }
         .top-navbar { background: #FFFFFF; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 12px rgba(0,0,0,0.04); position: sticky; top: 0; z-index: 50; }
@@ -144,7 +144,7 @@ if ($h_stmt) {
 
     <header class="top-navbar">
         <div class="flex items-center gap-3">
-            <a href="user Dashboad.php">
+            <a href="dashboard.php">
                 <img src="https://shebakitonline.xyz/assets/logo_nav.png" alt="Logo" class="header-logo">
             </a>
         </div>
@@ -156,9 +156,9 @@ if ($h_stmt) {
     <div class="max-w-4xl mx-auto px-3 py-6">
 
         <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm mb-6">
-            
+
             <div class="flex items-center justify-between border-b pb-4 mb-4">
-                <a href="user Dashboad.php" class="text-xs font-bold text-slate-500 hover:text-indigo-600 flex items-center gap-1.5">
+                <a href="dashboard.php" class="text-xs font-bold text-slate-500 hover:text-indigo-600 flex items-center gap-1.5">
                     <i class="fa-solid fa-arrow-left"></i> ড্যাশবোর্ডে ফিরুন
                 </a>
                 <span class="text-xs font-extrabold bg-indigo-50 text-indigo-700 px-3.5 py-1.5 rounded-full border border-indigo-100">
@@ -189,12 +189,12 @@ if ($h_stmt) {
                 <div class="mb-5">
                     <label class="block text-xs font-bold text-slate-700 mb-2">সেবা নির্বাচন করুন *</label>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-80 overflow-y-auto p-1 border rounded-2xl">
-                        <?php foreach ($text_services as $idx => $ts): 
+                        <?php foreach ($text_services as $idx => $ts):
                             $is_sel = ($idx === 0);
                             $is_active = ($ts['status'] === 'active');
                         ?>
-                        <div class="service-select-item flex items-center justify-between <?php echo $is_sel ? 'selected' : ''; ?>" 
-                             data-id="<?php echo $ts['id']; ?>" 
+                        <div class="service-select-item flex items-center justify-between <?php echo $is_sel ? 'selected' : ''; ?>"
+                             data-id="<?php echo $ts['id']; ?>"
                              data-price="<?php echo intval($ts['price']); ?>"
                              data-placeholder="<?php echo htmlspecialchars($ts['placeholder']); ?>"
                              onclick="selectTextService(this, <?php echo $ts['id']; ?>)">

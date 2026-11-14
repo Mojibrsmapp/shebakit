@@ -1,10 +1,11 @@
-<?php 
+<?php
 session_start();
 include_once("includes/configuration.php");
+require_once __DIR__ . "/includes/upload_validation.php";
 
 if (isset($_SESSION['user_token'])) {
     $token_user = $_SESSION['user_token'];
-    
+
     $stmt = $conn->prepare("SELECT id, balance, email, name, token, mobile FROM users WHERE token = ?");
     $stmt->bind_param("s", $token_user);
     $stmt->execute();
@@ -28,7 +29,7 @@ if (isset($_SESSION['user_token'])) {
 
 $service_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($service_id <= 0) {
-    header("Location: user Dashboad.php");
+    header("Location: dashboard.php");
     exit();
 }
 
@@ -39,8 +40,12 @@ $service = $srv_stmt->get_result()->fetch_assoc();
 $srv_stmt->close();
 
 if (!$service) {
-    header("Location: user Dashboad.php");
+    header("Location: dashboard.php");
     exit();
+}
+$service_image_url = trim((string)($service['service_image'] ?? ''));
+if (strpos($service_image_url, 'uploads/') === 0) {
+    $service_image_url = 'admin/' . $service_image_url;
 }
 
 $custom_fields = json_decode($service['custom_fields'] ?? '[]', true);
@@ -56,7 +61,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_custom_order'])
         $order_error = "এই সার্ভিসটি বর্তমানে সাময়িকভাবে বন্ধ আছে!";
     } else {
         $cost = floatval($service['price']);
-        
+
         $u_stmt = $conn->prepare("SELECT balance FROM users WHERE id = ? LIMIT 1");
         $u_stmt->bind_param("i", $id);
         $u_stmt->execute();
@@ -77,6 +82,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_custom_order'])
                 if ($f_type === 'file') {
                     $file_key = "field_" . $idx;
                     if (isset($_FILES[$file_key]) && $_FILES[$file_key]['error'] === 0) {
+                        if (!shebakit_valid_upload($_FILES[$file_key])) {
+                            $has_missing_required = true;
+                            $submitted_data[$f_title] = "";
+                            continue;
+                        }
                         $upDir = "uploads/orders/";
                         if (!is_dir($upDir)) {
                             mkdir($upDir, 0755, true);
@@ -111,7 +121,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_custom_order'])
             }
 
             if ($has_missing_required) {
-                $order_error = "অনুগ্রহ করে সকল আবশ্যকীয় তথ্য সঠিকভাবে পূরণ করুন!";
+                $order_error = "অনুগ্রহ করে আবশ্যকীয় তথ্য দিন এবং PDF, JPG, PNG, WEBP বা TXT ফাইল (সর্বোচ্চ ২০ MB) ব্যবহার করুন!";
             } else {
                 $conn->begin_transaction();
                 try {
@@ -162,13 +172,13 @@ $h_stmt->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title><?php echo htmlspecialchars($service['service_name']); ?> - ICONIC ONLINE FAST SERVICE</title>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
-    
+
     <style>
         * {
             margin: 0;
@@ -405,7 +415,7 @@ $h_stmt->close();
             <button type="button" id="openDrawerBtn" class="text-slate-700 text-xl px-1 hover:text-indigo-600">
                 <i class="fa-solid fa-bars"></i>
             </button>
-            <a href="user Dashboad.php" class="flex items-center">
+            <a href="dashboard.php" class="flex items-center">
                 <img src="https://shebakitonline.xyz/assets/logo_nav.png" alt="ShebaKit Logo" class="header-logo">
             </a>
         </div>
@@ -424,9 +434,9 @@ $h_stmt->close();
     <div class="page-container">
 
         <div class="order-card max-w-2xl mx-auto">
-            
+
             <div class="flex items-center justify-between border-b pb-4 mb-4">
-                <a href="user Dashboad.php" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 transition">
+                <a href="dashboard.php" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-arrow-left"></i> ব্যাকে যান
                 </a>
                 <div class="bg-indigo-50 text-indigo-700 font-extrabold text-xs px-3.5 py-1.5 rounded-full border border-indigo-100">
@@ -437,7 +447,7 @@ $h_stmt->close();
             <div class="flex items-center gap-3.5 bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl mb-5">
                 <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl flex-shrink-0">
                     <?php if (!empty($service['service_image'])): ?>
-                        <img src="<?php echo htmlspecialchars($service['service_image']); ?>" class="w-8 h-8 object-contain rounded-lg" alt="Icon">
+                        <img src="<?php echo htmlspecialchars($service_image_url, ENT_QUOTES, 'UTF-8'); ?>" class="w-8 h-8 object-contain rounded-lg" alt="Icon">
                     <?php else: ?>
                         <i class="fa-solid fa-layer-group"></i>
                     <?php endif; ?>
@@ -477,9 +487,9 @@ $h_stmt->close();
             <?php endif; ?>
 
             <form action="" method="POST" enctype="multipart/form-data">
-                
+
                 <?php if (!empty($custom_fields)): ?>
-                    <?php foreach ($custom_fields as $i => $field): 
+                    <?php foreach ($custom_fields as $i => $field):
                         $f_type = $field['type'] ?? 'text';
                         $f_title = $field['title'] ?? ('তথ্য ' . ($i + 1));
                         $is_req = !empty($field['required']);
@@ -495,7 +505,7 @@ $h_stmt->close();
                             <?php elseif ($f_type === 'textarea'): ?>
                                 <textarea name="field_<?php echo $i; ?>" rows="3" class="form-input-custom" placeholder="<?php echo htmlspecialchars($f_title); ?> লিখুন" <?php echo $is_req ? 'required' : ''; ?>></textarea>
                             <?php elseif ($f_type === 'file'): ?>
-                                <input type="file" name="field_<?php echo $i; ?>" class="form-input-custom text-xs" <?php echo $is_req ? 'required' : ''; ?>>
+                                <input type="file" name="field_<?php echo $i; ?>" accept=".pdf,.jpg,.jpeg,.png,.webp,.txt" class="form-input-custom text-xs" <?php echo $is_req ? 'required' : ''; ?>>
                             <?php elseif ($f_type === 'number'): ?>
                                 <input type="number" name="field_<?php echo $i; ?>" class="form-input-custom" placeholder="<?php echo htmlspecialchars($f_title); ?>" <?php echo $is_req ? 'required' : ''; ?>>
                             <?php else: ?>
@@ -548,7 +558,7 @@ $h_stmt->close();
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php $serial = 1; foreach ($recent_orders as $ord): 
+                            <?php $serial = 1; foreach ($recent_orders as $ord):
                                 $st_badge = 'bg-amber-50 text-amber-700 border border-amber-200';
                                 $st_text = 'পেন্ডিং';
                                 if ($ord['status'] === 'success') {
@@ -612,7 +622,7 @@ $h_stmt->close();
             <button id="closeDrawerBtn" class="text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="drawer-body">
-            <a href="user Dashboad.php" class="drawer-link"><i class="fa-solid fa-house text-indigo-500"></i> হোম ড্যাশবোর্ড</a>
+            <a href="dashboard.php" class="drawer-link"><i class="fa-solid fa-house text-indigo-500"></i> হোম ড্যাশবোর্ড</a>
             <a href="serverCopy.php" class="drawer-link"><i class="fa-solid fa-server text-sky-500"></i> অটো সার্ভার কপি</a>
             <a href="recharge.php" class="drawer-link"><i class="fa-solid fa-wallet text-emerald-600"></i> ব্যালেন্স রিচার্জ</a>
             <a href="work_history.php" class="drawer-link"><i class="fa-solid fa-clock-rotate-left text-violet-500"></i> অর্ডার হিস্টোরি</a>

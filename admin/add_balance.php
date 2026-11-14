@@ -1,4 +1,4 @@
-<?php 
+<?php
 include_once("header.php");
 
 $save_msg = "";
@@ -25,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_balance'])) {
         } else {
             $user_data = $user_res->fetch_assoc();
             $current_bal = floatval($user_data['balance']);
-            
+
             if ($action === 'deduct') {
                 if ($current_bal < $amount) {
                     $save_error = "ব্যবহারকারীর পর্যাপ্ত ব্যালেন্স নেই! বর্তমান ব্যালেন্স: ৳ " . number_format($current_bal, 2);
@@ -140,7 +140,7 @@ if ($u_query && $u_query->num_rows > 0) {
 <div class="container-fluid px-3 px-md-4 py-4">
 
     <div class="balance-box">
-        
+
         <div class="flex items-center justify-between border-b pb-4 mb-5">
             <div>
                 <h3 class="text-xl font-extrabold text-slate-800 flex items-center gap-2">
@@ -148,7 +148,7 @@ if ($u_query && $u_query->num_rows > 0) {
                 </h3>
                 <p class="text-xs text-slate-500 mt-1">ব্যবহারকারীর অ্যাকাউন্টে ব্যালেন্স যোগ অথবা কর্তন করুন</p>
             </div>
-            <a href="users.php" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition">
+            <a href="user_list.php" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition">
                 <i class="fa-solid fa-users"></i> গ্রাহক তালিকা
             </a>
         </div>
@@ -164,7 +164,7 @@ if ($u_query && $u_query->num_rows > 0) {
         <?php endif; ?>
 
         <form action="" method="POST">
-            
+
             <div class="mb-4">
                 <label class="block text-xs font-bold text-slate-700 mb-1.5">ব্যবহারকারী নির্বাচন করুন <span class="text-rose-500">*</span></label>
                 <select name="user_id" id="userSelect" class="form-input-box" required onchange="updateUserDisplay()">

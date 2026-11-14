@@ -1,4 +1,5 @@
-<?php include_once("header.php");?>
+<?php include_once("header.php");
+if (empty($_SESSION['legacy_delete_csrf'])) { $_SESSION['legacy_delete_csrf'] = bin2hex(random_bytes(32)); }?>
 <div class="row">
   <div class="col-md-12">
     <div class="card mb-4">
@@ -97,7 +98,7 @@ function confirmDelete(id) {
     }).then((result) => {
         if (result.isConfirmed) {
             // If confirmed, redirect to delete_card.php with the id
-            window.location.href = 'pages/delete_server.php?id=' + id;
+            window.location.href = 'pages/delete_server.php?id=' + encodeURIComponent(id) + '&csrf=<?php echo rawurlencode($_SESSION['legacy_delete_csrf']); ?>';
         }
     });
 }

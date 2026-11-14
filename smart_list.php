@@ -1,5 +1,6 @@
 <?php
 include_once("header.php");
+if (empty($_SESSION['legacy_delete_csrf'])) { $_SESSION['legacy_delete_csrf'] = bin2hex(random_bytes(32)); }
 if (!isset($_SESSION["user_id"])) {
   header("Location: index.php");
   exit;
@@ -105,7 +106,7 @@ $user = base64_decode($_SESSION["user_id"]);
       cancelButtonText: 'Cancel'
     }).then((result) => {
       if (result.isConfirmed) {
-        window.location.href = 'pages/delete_smart.php?id=' + id;
+        window.location.href = 'pages/delete_smart.php?id=' + encodeURIComponent(id) + '&csrf=<?php echo rawurlencode($_SESSION['legacy_delete_csrf']); ?>';
       }
     });
   }

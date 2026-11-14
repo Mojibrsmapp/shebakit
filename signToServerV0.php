@@ -102,7 +102,7 @@ include_once("pages/sign_to_server.php");
         
         <!-- Photo and QR Code -->
         <div style="position: absolute; left: 16%; top: 25.7%; width: auto; font-size: 12px; color: rgb(3, 3, 3);">
-            <img id="photo" src="<?php echo $photoPath ?>" height="140px" width="121px" style="border-radius: 10px" onerror="this.src='assets/images/default-user.png'"/>
+            <img id="photo" src="<?php echo $photoPath ?>" height="140px" width="121px" style="border-radius: 10px" onerror="this.src='assets/logo.jpg'"/>
         </div>
         <div style="position: absolute; left: 18.5%; top: 43%; width: auto; font-size: 12px; color: rgb(3, 3, 3);">
             <img id="qr" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&amp;data=<?php echo urlencode($nameEn." ". $nid." ".$dob) ?>" height="85px" width="85px" />

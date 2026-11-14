@@ -1,8 +1,16 @@
-<?php 
+<?php
+ob_start();
 include_once("header.php");
 
 $save_msg = "";
 $save_error = "";
+if (!empty($_SESSION['admin_service_flash']) && is_array($_SESSION['admin_service_flash'])) {
+    $flash = $_SESSION['admin_service_flash'];
+    unset($_SESSION['admin_service_flash']);
+    if (($flash['type'] ?? '') === 'success') { $save_msg = (string)($flash['message'] ?? ''); }
+    else { $save_error = (string)($flash['message'] ?? ''); }
+}
+if (empty($_SESSION['admin_service_csrf'])) { $_SESSION['admin_service_csrf'] = bin2hex(random_bytes(32)); }
 
 $categories_list = [];
 $cat_q = $conn->query("SELECT DISTINCT category FROM custom_services WHERE category IS NOT NULL AND category != '' ORDER BY category ASC");
@@ -13,6 +21,10 @@ if ($cat_q && $cat_q->num_rows > 0) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_service'])) {
+    $submitted_csrf = (string)($_POST['csrf_token'] ?? '');
+    if (!hash_equals($_SESSION['admin_service_csrf'], $submitted_csrf)) {
+        $save_error = "ফর্মের নিরাপত্তা যাচাই ব্যর্থ হয়েছে। আবার চেষ্টা করুন।";
+    } else {
     $service_name = trim($_POST['service_name'] ?? '');
     $category = trim($_POST['category'] ?? 'সাধারণ সার্ভিস');
     $price = floatval($_POST['price'] ?? 0);
@@ -48,8 +60,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_service'])) {
             mkdir($upDir, 0755, true);
         }
         $ext = strtolower(pathinfo($_FILES["service_image"]["name"], PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png', 'webp', 'svg'];
-        if (in_array($ext, $allowed)) {
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['service_image']['tmp_name']);
+        $allowed_mimes = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
+        if (in_array($ext, $allowed, true) && ($allowed_mimes[$ext] ?? '') === $mime) {
             $newFilename = "srv_" . time() . "_" . rand(100, 999) . "." . $ext;
             $targetPath = $upDir . $newFilename;
             if (move_uploaded_file($_FILES["service_image"]["tmp_name"], $targetPath)) {
@@ -63,7 +77,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_service'])) {
     } else {
         $stmt = $conn->prepare("INSERT INTO custom_services (service_name, category, price, service_type, status, is_pinned, description, access_link, service_image, custom_fields) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("ssdssissss", $service_name, $category, $price, $service_type, $status, $is_pinned, $description, $access_link, $service_image_path, $custom_fields_json);
-        
+
         if ($stmt->execute()) {
             $save_msg = "সার্ভিসটি সফলভাবে ডাটাবেজে যুক্ত করা হয়েছে!";
         } else {
@@ -71,6 +85,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_service'])) {
         }
         $stmt->close();
     }
+    }
+    $_SESSION['admin_service_flash'] = [
+        'type' => $save_error === '' ? 'success' : 'error',
+        'message' => $save_error !== '' ? $save_error : $save_msg
+    ];
+    if (ob_get_level() > 0) { ob_clean(); }
+    header('Location: add_service.php');
+    exit;
 }
 ?>
 
@@ -150,7 +172,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_service'])) {
 <div class="container-fluid px-3 px-md-4 py-4">
 
     <div class="service-box">
-        
+
         <div class="flex items-center justify-between border-b pb-4 mb-5">
             <div>
                 <h3 class="text-xl font-extrabold text-slate-800 flex items-center gap-2">
@@ -165,16 +187,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_service'])) {
 
         <?php if(!empty($save_msg)): ?>
             <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl mb-4 text-xs font-bold flex items-center gap-2">
-                <i class="fa-solid fa-circle-check text-emerald-600"></i> <?php echo $save_msg; ?>
+                <i class="fa-solid fa-circle-check text-emerald-600"></i> <?php echo htmlspecialchars($save_msg, ENT_QUOTES, 'UTF-8'); ?>
             </div>
         <?php elseif(!empty($save_error)): ?>
             <div class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-2xl mb-4 text-xs font-bold flex items-center gap-2">
-                <i class="fa-solid fa-circle-exclamation text-rose-600"></i> <?php echo $save_error; ?>
+                <i class="fa-solid fa-circle-exclamation text-rose-600"></i> <?php echo htmlspecialchars($save_error, ENT_QUOTES, 'UTF-8'); ?>
             </div>
         <?php endif; ?>
 
         <form action="" method="POST" enctype="multipart/form-data">
-            
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['admin_service_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1.5">নাম <span class="text-rose-500">*</span></label>

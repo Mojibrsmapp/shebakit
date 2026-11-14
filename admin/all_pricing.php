@@ -2,10 +2,28 @@
 session_start();
 include_once("../includes/configuration.php");
 
-$alert_msg = "";
-$alert_type = "";
+$adminToken = (string)($_SESSION['admin_token'] ?? '');
+$authStmt = $conn->prepare('SELECT id FROM admin_user WHERE token = ? LIMIT 1');
+$authStmt->bind_param('s', $adminToken);
+$authStmt->execute();
+$isAdmin = (bool)$authStmt->get_result()->fetch_assoc();
+$authStmt->close();
+if ($adminToken === '' || !$isAdmin) {
+    header('Location: index.php');
+    exit;
+}
+if (empty($_SESSION['all_pricing_csrf'])) { $_SESSION['all_pricing_csrf'] = bin2hex(random_bytes(32)); }
+$flash = $_SESSION['all_pricing_flash'] ?? null;
+unset($_SESSION['all_pricing_flash']);
+$alert_msg = (string)($flash['message'] ?? '');
+$alert_type = (string)($flash['type'] ?? '');
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action_type'])) {
+    if (!hash_equals($_SESSION['all_pricing_csrf'], (string)($_POST['csrf_token'] ?? ''))) {
+        $_SESSION['all_pricing_flash'] = ['type' => 'error', 'message' => 'ফর্ম যাচাই ব্যর্থ হয়েছে। আবার চেষ্টা করুন।'];
+        header('Location: all_pricing.php', true, 303);
+        exit;
+    }
     $tbl = trim($_POST['target_table'] ?? '');
     $ids = $_POST['row_id'] ?? [];
     $prices = $_POST['price'] ?? [];
@@ -95,6 +113,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action_type'])) {
         $alert_msg = "সার্ভার কপি রেট সফলভাবে আপডেট হয়েছে!";
         $alert_type = "success";
     }
+    $_SESSION['all_pricing_flash'] = ['type' => $alert_type ?: 'success', 'message' => $alert_msg ?: 'পরিবর্তন সংরক্ষণ করা হয়েছে।'];
+    header('Location: all_pricing.php', true, 303);
+    exit;
 }
 
 $loc_items = $conn->query("SELECT * FROM location_services ORDER BY id ASC")->fetch_all(MYSQLI_ASSOC);
@@ -151,8 +172,8 @@ $server_make_items = $conn->query("SELECT * FROM price_list ORDER BY id ASC")->f
         </div>
 
         <?php if (!empty($alert_msg)): ?>
-            <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl mb-5 text-xs font-bold flex items-center gap-2">
-                <i class="fa-solid fa-circle-check text-emerald-600"></i> <?php echo $alert_msg; ?>
+            <div class="<?php echo $alert_type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'; ?> border px-4 py-3 rounded-xl mb-5 text-xs font-bold flex items-center gap-2">
+                <i class="fa-solid fa-circle-check text-emerald-600"></i> <?php echo htmlspecialchars($alert_msg, ENT_QUOTES, 'UTF-8'); ?>
             </div>
         <?php endif; ?>
 
@@ -171,6 +192,7 @@ $server_make_items = $conn->query("SELECT * FROM price_list ORDER BY id ASC")->f
         <!-- ১. লোকেশন সার্ভিস -->
         <div id="locTab" class="tab-content">
             <form action="" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['all_pricing_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="action_type" value="update_price">
                 <input type="hidden" name="target_table" value="location_services">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
@@ -200,6 +222,7 @@ $server_make_items = $conn->query("SELECT * FROM price_list ORDER BY id ASC")->f
         <!-- ২. কল ও এসএমএস -->
         <div id="callTab" class="tab-content hidden">
             <form action="" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['all_pricing_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="action_type" value="update_price">
                 <input type="hidden" name="target_table" value="call_sms_services">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
@@ -227,6 +250,7 @@ $server_make_items = $conn->query("SELECT * FROM price_list ORDER BY id ASC")->f
         <!-- ৩. IMEI -->
         <div id="imeiTab" class="tab-content hidden">
             <form action="" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['all_pricing_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="action_type" value="update_price">
                 <input type="hidden" name="target_table" value="imei_services">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
@@ -254,6 +278,7 @@ $server_make_items = $conn->query("SELECT * FROM price_list ORDER BY id ASC")->f
         <!-- ৪. MFS -->
         <div id="mfsTab" class="tab-content hidden">
             <form action="" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['all_pricing_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="action_type" value="update_price">
                 <input type="hidden" name="target_table" value="mfs_services">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
@@ -281,6 +306,7 @@ $server_make_items = $conn->query("SELECT * FROM price_list ORDER BY id ASC")->f
         <!-- ৫. নাম্বার টু বায়ো -->
         <div id="numTab" class="tab-content hidden">
             <form action="" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['all_pricing_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="action_type" value="update_price">
                 <input type="hidden" name="target_table" value="number_to_server_services">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
@@ -308,6 +334,7 @@ $server_make_items = $conn->query("SELECT * FROM price_list ORDER BY id ASC")->f
         <!-- ৬. অর্ডার টেক্সট -->
         <div id="textTab" class="tab-content hidden">
             <form action="" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['all_pricing_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="action_type" value="update_price">
                 <input type="hidden" name="target_table" value="order_text_services">
                 <div class="space-y-2.5 max-h-[580px] overflow-y-auto pr-2 mb-5">
@@ -335,6 +362,7 @@ $server_make_items = $conn->query("SELECT * FROM price_list ORDER BY id ASC")->f
         <!-- ৭. অর্ডার ফাইল -->
         <div id="fileTab" class="tab-content hidden">
             <form action="" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['all_pricing_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="action_type" value="update_price">
                 <input type="hidden" name="target_table" value="order_file_services">
                 <div class="space-y-2.5 max-h-[580px] overflow-y-auto pr-2 mb-5">
@@ -362,6 +390,7 @@ $server_make_items = $conn->query("SELECT * FROM price_list ORDER BY id ASC")->f
         <!-- ৮. রেগুলার সার্ভিস -->
         <div id="regTab" class="tab-content hidden">
             <form action="" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['all_pricing_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="action_type" value="update_price">
                 <input type="hidden" name="target_table" value="prices">
                 <div class="space-y-2.5 max-h-[580px] overflow-y-auto pr-2 mb-5">
@@ -389,6 +418,7 @@ $server_make_items = $conn->query("SELECT * FROM price_list ORDER BY id ASC")->f
         <!-- ৯. সার্ভার কপি মেক রেট -->
         <div id="srvMakeTab" class="tab-content hidden">
             <form action="" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['all_pricing_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="action_type" value="update_price">
                 <input type="hidden" name="target_table" value="price_list">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
