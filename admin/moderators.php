@@ -242,6 +242,18 @@ $renderPermissions = static function (array $permissions, callable $escape) use 
     }
 };
 ?>
+<style>
+    .moderator-users-table { color: #0f172a !important; background: #ffffff !important; }
+    .moderator-users-table thead th { color: #0f172a !important; background: #e2e8f0 !important; border-color: #cbd5e1 !important; }
+    .moderator-users-table tbody td { color: #334155 !important; background: #ffffff !important; border-color: #cbd5e1 !important; }
+    .moderator-users-table tbody tr:nth-child(even) td { background: #f1f5f9 !important; }
+    .moderator-users-table tbody td .text-slate-400,
+    .moderator-users-table tbody td .text-slate-500 { color: #475569 !important; }
+    .moderator-users-table select,
+    .moderator-users-table select option { color: #0f172a !important; background-color: #ffffff !important; }
+    .moderator-user-search input { color: #0f172a !important; background-color: #ffffff !important; border-color: #94a3b8 !important; }
+    .moderator-user-search input::placeholder { color: #64748b !important; opacity: 1; }
+</style>
 <div class="space-y-5">
     <section class="bg-white p-5 md:p-6 rounded-3xl border border-slate-200 shadow-sm">
         <h2 class="text-xl font-extrabold text-slate-800">মডারেটর প্যানেল</h2>
@@ -266,11 +278,11 @@ $renderPermissions = static function (array $permissions, callable $escape) use 
             <h3 class="font-bold text-slate-800">বর্তমান ইউজারকে Admin / Moderator করুন</h3>
             <p class="text-xs text-slate-500 mt-1">সাইটের বিদ্যমান ইউজারের email ও password admin panel-এও ব্যবহার হবে। নতুন Moderator-এর কোনো বিভাগ শুরুতে অনুমোদিত থাকবে না; নিচের Moderator অনুমতি অংশ থেকে Admin প্রয়োজনীয় view-only বিভাগ চালু করবেন।</p>
         </div>
-        <form method="get" class="flex flex-wrap gap-2">
+        <form method="get" class="moderator-user-search flex flex-wrap gap-2">
             <input class="min-w-[240px] flex-1 rounded-xl border border-slate-300 p-3" type="search" name="user_q" value="<?= $escape($userSearch) ?>" placeholder="নাম বা ইমেইল দিয়ে খুঁজুন">
             <button class="rounded-xl bg-slate-800 px-4 py-2 font-bold text-white" type="submit">খুঁজুন</button>
         </form>
-        <div class="overflow-x-auto"><table class="w-full min-w-[720px] text-sm text-left">
+        <div class="overflow-x-auto"><table class="moderator-users-table w-full min-w-[720px] text-sm text-left">
             <thead><tr class="border-b text-slate-500"><th class="p-3">ইউজার</th><th class="p-3">ইমেইল</th><th class="p-3">বর্তমান Role</th><th class="p-3">অ্যাকশন</th></tr></thead>
             <tbody>
             <?php if (!$existingUsers): ?><tr><td class="p-3 text-slate-500" colspan="4">ইউজার পাওয়া যায়নি। নাম বা ইমেইল দিয়ে খুঁজুন।</td></tr><?php endif; ?>
