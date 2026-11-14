@@ -7,18 +7,19 @@ session_start();
 }
 $user = base64_decode($_SESSION['user_id']);
 // Database connection
-include_once("includes/configuration.php"); 
+include_once("includes/configuration.php");
+require_once __DIR__ . '/includes/server_copy_settings.php';
+$settings = sheba_server_copy_settings($conn);
+header('Content-Type: application/json; charset=utf-8');
+if ($settings['server_copy_enabled'] !== '1' || $settings['server_copy_download_list_enabled'] !== '1') { echo json_encode([]); exit; }
 
-// Fetch data from the database and order by id or created_at (replace 'id' with your actual timestamp or identifier)
-$sql = "SELECT * FROM server_copy WHERE user_mail='$user' ORDER BY id DESC"; // Assuming 'id' is the primary key and higher IDs are newer
-$result = $conn->query($sql);
-
+$stmt = $conn->prepare('SELECT * FROM server_copy WHERE user_mail = ? ORDER BY id DESC');
+$stmt->bind_param('s', $user);
+$stmt->execute();
+$result = $stmt->get_result();
 $data = [];
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $data[] = $row;
-    }
-}
+while ($row = $result->fetch_assoc()) { $data[] = $row; }
+$stmt->close();
 
 $conn->close();
 

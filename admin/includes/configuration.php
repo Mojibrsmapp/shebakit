@@ -74,3 +74,6 @@ if (!function_exists('send_tg_instant')) {
         }
     }
 }
+require_once __DIR__ . '/admin_roles.php';
+sheba_ensure_admin_role_column($conn);
+sheba_enforce_moderator_scope($conn);

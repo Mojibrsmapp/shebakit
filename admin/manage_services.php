@@ -2,6 +2,8 @@
 error_reporting(0);
 session_start();
 include_once("../includes/configuration.php");
+require_once __DIR__ . "/includes/admin_roles.php";
+sheba_require_admin_role($conn, ['admin']);
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) &&$_POST['action'] === 'toggle_status') {
     header('Content-Type: application/json');

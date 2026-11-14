@@ -17,6 +17,15 @@ if (isset($_SESSION['admin_token'])) {
             $admin_email =$row["email"] ?? '';
             $admin_name =$row["name"] ?? 'Admin';
             $admin_token =$row["token"] ?? '';
+            $admin_role = strtolower((string)($row["role"] ?? $_SESSION['admin_role'] ?? 'admin'));
+            if (!in_array($admin_role, ['admin', 'moderator'], true) || (int)($row['status'] ?? 0) !== 1) {
+                unset($_SESSION['admin_token'], $_SESSION['admin_role']);
+                header("Location: index.php");
+                exit();
+            }
+            $_SESSION['admin_role'] = $admin_role;
+            $admin_record = sheba_admin_role_record($conn, (string)$admin_token);
+            $admin_permissions = $admin_record['permissions'] ?? sheba_default_permissions();
         } else {
             unset($_SESSION['admin_token']);
             header("Location: index.php");
@@ -45,6 +54,17 @@ if ($ord_c) {
 }
 
 $current_page = basename($_SERVER['PHP_SELF']);
+$adminLogoSrc = '/assets/logo_nav.png';
+$adminLogoFallback = '/assets/logo.jpg';
+$documentRoot = realpath((string)($_SERVER['DOCUMENT_ROOT'] ?? ''));
+$logoFile = realpath(dirname(__DIR__) . '/assets/logo_nav.png');
+$logoFallbackFile = realpath(dirname(__DIR__) . '/assets/logo.jpg');
+if ($documentRoot && $logoFile && strpos($logoFile, rtrim($documentRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) === 0) {
+    $adminLogoSrc = str_replace(DIRECTORY_SEPARATOR, '/', substr($logoFile, strlen(rtrim($documentRoot, DIRECTORY_SEPARATOR))));
+}
+if ($documentRoot && $logoFallbackFile && strpos($logoFallbackFile, rtrim($documentRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) === 0) {
+    $adminLogoFallback = str_replace(DIRECTORY_SEPARATOR, '/', substr($logoFallbackFile, strlen(rtrim($documentRoot, DIRECTORY_SEPARATOR))));
+}
 ?>
 <!DOCTYPE html>
 <html lang="bn">
@@ -183,7 +203,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
         <div class="p-4 border-b border-purple-900/20 flex items-center justify-between">
             <a href="dashboard.php" class="flex items-center gap-2.5 no-underline">
-                <img src="/assets/logo_nav.png" alt="Logo" class="h-7 w-auto">
+                <img src="<?php echo htmlspecialchars($adminLogoSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="ShebaKit Logo" class="h-7 w-auto" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($adminLogoFallback, ENT_QUOTES, 'UTF-8'); ?>';">
                 <div>
                     <span class="text-[11px] font-black tracking-wider block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">MASTER ENGINE</span>
                     <span class="text-[9.5px] text-purple-300/60 font-semibold block">v2.4 Control Hub</span>
@@ -194,6 +214,18 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </button>
         </div>
 
+        <?php if (($admin_role ?? 'admin') === 'moderator'): ?>
+        <div class="py-2">
+            <div class="nav-category-header">মডারেটর প্যানেল</div>
+            <a href="moderator_panel.php" class="sidebar-menu-item <?php echo ($current_page === 'moderator_panel.php') ? 'active' : ''; ?>"><div class="flex items-center gap-2.5"><i class="fa-solid fa-layer-group text-purple-400"></i><span>আমার অনুমতি</span></div></a>
+            <?php $modLabels = ['orders' => ['অর্ডার', 'fa-boxes-stacked'], 'history' => ['হিস্টোরি', 'fa-clock-rotate-left'], 'recharge' => ['রিচার্জ', 'fa-money-bill-transfer'], 'services' => ['সার্ভিস তালিকা', 'fa-list-check'], 'users' => ['ইউজার তালিকা', 'fa-users']]; ?>
+            <?php foreach ($modLabels as $modKey => $modLabel): if (empty($admin_permissions[$modKey])) { continue; } ?>
+                <a href="moderator_view.php?section=<?php echo urlencode($modKey); ?>" class="sidebar-menu-item <?php echo (($_GET['section'] ?? '') === $modKey) ? 'active' : ''; ?>"><div class="flex items-center gap-2.5"><i class="fa-solid <?php echo htmlspecialchars($modLabel[1]); ?> text-sky-400"></i><span><?php echo htmlspecialchars($modLabel[0]); ?></span></div></a>
+            <?php endforeach; ?>
+            <a href="profile.php" class="sidebar-menu-item <?php echo ($current_page === 'profile.php') ? 'active' : ''; ?>"><div class="flex items-center gap-2.5"><i class="fa-solid fa-user text-slate-400"></i><span>নিজের পাসওয়ার্ড</span></div></a>
+            <a href="logout.php" class="sidebar-menu-item text-rose-400/90"><div class="flex items-center gap-2.5"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>লগআউট</span></div></a>
+        </div>
+        <?php else: ?>
         <div class="py-2">
 
             <div class="nav-category-header">ওভারভিউ</div>
@@ -247,6 +279,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </div>
             </a>
 
+            <a href="amount_auto.php" class="sidebar-menu-item <?php echo ($current_page === 'amount_auto.php') ? 'active' : ''; ?>">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-server text-cyan-400"></i>
+                    <span>অটো সার্ভার কপি মূল্য</span>
+                </div>
+            </a>
+
+            <a href="server_copy_settings.php" class="sidebar-menu-item <?php echo ($current_page === 'server_copy_settings.php') ? 'active' : ''; ?>">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-sliders text-sky-400"></i>
+                    <span>Server Copy API ও কন্ট্রোল</span>
+                </div>
+            </a>
+
             <a href="add_service.php" class="sidebar-menu-item <?php echo ($current_page === 'add_service.php') ? 'active' : ''; ?>">
                 <div class="flex items-center gap-2.5">
                     <i class="fa-solid fa-circle-plus text-emerald-400"></i>
@@ -273,6 +319,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <div class="flex items-center gap-2.5">
                     <i class="fa-solid fa-link text-cyan-400"></i>
                     <span>ইনভাইট লিংক</span>
+                </div>
+            </a>
+
+            <a href="moderators.php" class="sidebar-menu-item <?php echo ($current_page === 'moderators.php') ? 'active' : ''; ?>">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-user-shield text-fuchsia-400"></i>
+                    <span>মডারেটর প্যানেল</span>
                 </div>
             </a>
 
@@ -306,6 +359,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </a>
 
         </div>
+        <?php endif; ?>
 
     </aside>
 
@@ -325,6 +379,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
             <div class="flex items-center gap-2.5">
 
+                <?php if (($admin_role ?? 'admin') === 'admin'): ?>
                 <a href="manage_deposits.php" class="relative bg-purple-950/40 hover:bg-purple-900/40 border border-purple-500/20 text-purple-200 w-8 h-8 rounded-xl flex items-center justify-center text-xs transition" title="পেন্ডিং রিচার্জ">
                     <i class="fa-solid fa-bell"></i>
                     <?php if ($pending_deposits > 0): ?>
@@ -333,15 +388,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         </span>
                     <?php endif; ?>
                 </a>
+                <?php endif; ?>
 
+                <?php if (($admin_role ?? 'admin') === 'admin'): ?>
                 <div class="bg-gradient-to-r from-purple-950/60 to-indigo-950/60 border border-purple-500/25 px-3 py-1 rounded-xl flex items-center gap-2">
                     <i class="fa-solid fa-wallet text-purple-400 text-xs"></i>
                     <span class="text-xs font-bold text-white">৳ <?php echo number_format($admin_balance, 2); ?></span>
                 </div>
+                <?php else: ?>
+                <span class="px-3 py-1 rounded-xl border border-purple-500/25 text-xs text-purple-200">Moderator</span>
+                <?php endif; ?>
 
                 <div class="relative">
                     <button type="button" id="adminProfileMenuBtn" class="flex items-center gap-2 focus:outline-none p-0.5 rounded-xl hover:ring-2 hover:ring-purple-400/40 transition">
-                        <img src="/assets/logo.jpg" alt="Admin" class="w-8 h-8 rounded-xl border border-purple-500/30 object-cover pointer-events-none">
+                        <img src="<?php echo htmlspecialchars($adminLogoSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="Admin account" class="w-8 h-8 rounded-xl border border-purple-500/30 object-cover pointer-events-none" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($adminLogoFallback, ENT_QUOTES, 'UTF-8'); ?>';">
                     </button>
 
                     <div id="adminDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-[#0E091D] rounded-2xl shadow-2xl border border-purple-500/20 py-2 z-50">
@@ -352,9 +412,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <a href="profile.php" class="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-purple-200 hover:bg-purple-900/30">
                             <i class="fa-solid fa-user-gear text-purple-400 w-4"></i> প্রোফাইল
                         </a>
+                        <?php if (($admin_role ?? 'admin') === 'admin'): ?>
                         <a href="settings.php" class="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-purple-200 hover:bg-purple-900/30">
                             <i class="fa-solid fa-sliders text-pink-400 w-4"></i> সাইট সেটিংস
                         </a>
+                        <?php endif; ?>
                         <a href="logout.php" class="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/10">
                             <i class="fa-solid fa-power-off w-4"></i> লগআউট
                         </a>
