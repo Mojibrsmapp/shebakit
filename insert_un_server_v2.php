@@ -5,6 +5,13 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 include_once("includes/configuration.php");
+require_once __DIR__ . '/includes/server_copy_settings.php';
+$serverSettings = sheba_server_copy_settings($conn);
+header('Content-Type: application/json; charset=utf-8');
+if ($serverSettings['server_copy_enabled'] !== '1' || $serverSettings['server_copy_api2_enabled'] !== '1') {
+    echo json_encode(['status' => 'error', 'message' => 'এই API বর্তমানে অ্যাডমিন বন্ধ রেখেছেন।']);
+    exit;
+}
 
 function safe_get($array, $key, $default = null) {
     $value = isset($array[$key]) ? trim($array[$key]) : null;
@@ -32,10 +39,23 @@ if (isset($_POST['nid']) && isset($_POST['dob'])) {
         $userBalance = $balanceResult->fetch_assoc()['balance'];
 
         if ($userBalance >= $deductionAmount) {
-            $url = "https://api.totthohub.com/servercopyonaliseba754&nid=$nid&dob=$dob";
+            $apiTemplate = trim((string)$serverSettings['server_copy_api2_url']);
+            $apiKey = trim((string)$serverSettings['server_copy_api2_key']);
+            if ($apiTemplate === '') {
+                // Equivalent to the existing built-in endpoint; the suffix is the legacy API key.
+                $apiTemplate = 'https://api.totthohub.com/servercopy{key}&nid={nid}&dob={dob}';
+                if ($apiKey === '') { $apiKey = 'onaliseba754'; }
+            } elseif (strpos($apiTemplate, '{key}') !== false && $apiKey === '') {
+                echo json_encode(['status' => 'error', 'message' => 'API 2 key সেট করা নেই। অ্যাডমিন প্যানেলে API key দিন।']);
+                exit;
+            }
+            $url = sheba_server_copy_url($apiTemplate, $apiKey, (string)$nid, (string)$dob);
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
             $response = curl_exec($ch);
 
             if ($response === false) {

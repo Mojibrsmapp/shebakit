@@ -8,6 +8,13 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 include_once("includes/configuration.php");
+require_once __DIR__ . '/includes/server_copy_settings.php';
+$serverSettings = sheba_server_copy_settings($conn);
+header('Content-Type: application/json; charset=utf-8');
+if ($serverSettings['server_copy_enabled'] !== '1' || $serverSettings['server_copy_api1_enabled'] !== '1') {
+    echo json_encode(['status' => 'error', 'message' => 'এই API বর্তমানে অ্যাডমিন বন্ধ রেখেছেন।']);
+    exit;
+}
 
 function safe_get($array, $key, $default = null) {
     if (!is_array($array)) return $default;
@@ -46,16 +53,24 @@ if ($userBalance < $deductionAmount) {
 }
 
 /* ============ API CALL ============ */
-$apiKey = 'th_93d5c103fc4581565d3ec876';
-$apiUrl = "https://api1.totthohub.com/api/v1?key={$apiKey}&nid={$nid}&dob={$dob}";
+$apiKey = trim((string)$serverSettings['server_copy_api1_key']);
+$apiTemplate = trim((string)$serverSettings['server_copy_api1_url']);
+if ($apiTemplate === '') {
+    $apiTemplate = 'https://api1.totthohub.com/api/v1?key={key}&nid={nid}&dob={dob}';
+    if ($apiKey === '') { $apiKey = 'th_93d5c103fc4581565d3ec876'; }
+} elseif (strpos($apiTemplate, '{key}') !== false && $apiKey === '') {
+    echo json_encode(['status' => 'error', 'message' => 'API 1 key সেট করা নেই। অ্যাডমিন প্যানেলে API key দিন।']);
+    exit;
+}
+$apiUrl = sheba_server_copy_url($apiTemplate, $apiKey, $nid, $dob);
 
 $ch = curl_init($apiUrl);
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_FOLLOWLOCATION => false,
     CURLOPT_TIMEOUT        => 30,
-    CURLOPT_SSL_VERIFYPEER => false,
-    CURLOPT_SSL_VERIFYHOST => false,
+    CURLOPT_SSL_VERIFYPEER => true,
+    CURLOPT_SSL_VERIFYHOST => 2,
     CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
 ]);
 $response = curl_exec($ch);

@@ -15,11 +15,18 @@ $nid = $_GET["nid"];
 $id  = $_GET["id"];
 
 include_once("includes/configuration.php");
+require_once __DIR__ . '/includes/server_copy_settings.php';
+$serverSettings = sheba_server_copy_settings($conn);
+if ($serverSettings['server_copy_enabled'] !== '1' || $serverSettings['server_copy_download_list_enabled'] !== '1' || $serverSettings['server_copy_download_v1_enabled'] !== '1') {
+    http_response_code(403);
+    exit('এই download format অ্যাডমিন বন্ধ রেখেছেন।');
+}
+$userMail = base64_decode((string)$_SESSION['user_id']);
 
-$sql = "SELECT * FROM server_copy WHERE nationalId = ? AND id = ?";
+$sql = "SELECT * FROM server_copy WHERE nationalId = ? AND id = ? AND user_mail = ?";
 $stmt = $conn->prepare($sql);
 if ($stmt === false) { die("Prepare failed: " . htmlspecialchars($conn->error)); }
-$stmt->bind_param("si", $nid, $id);
+$stmt->bind_param("sis", $nid, $id, $userMail);
 $stmt->execute();
 $result = $stmt->get_result();
 

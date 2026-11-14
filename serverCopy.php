@@ -1,4 +1,16 @@
-<?php include("header.php"); ?>
+<?php
+include_once("header.php");
+require_once __DIR__ . '/includes/server_copy_settings.php';
+$serverSettings = sheba_server_copy_settings($conn);
+$serverCopyAvailableApis = [];
+if ($serverSettings['server_copy_api1_enabled'] === '1') { $serverCopyAvailableApis[] = '1'; }
+if ($serverSettings['server_copy_api2_enabled'] === '1') { $serverCopyAvailableApis[] = '2'; }
+$serverCopyDownloads = [];
+if ($serverSettings['server_copy_download_v1_enabled'] === '1') { $serverCopyDownloads[] = 'v1'; }
+if ($serverSettings['server_copy_download_v2_enabled'] === '1') { $serverCopyDownloads[] = 'v2'; }
+if ($serverSettings['server_copy_download_nid_enabled'] === '1') { $serverCopyDownloads[] = 'nid'; }
+$serverCopyEscape = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+?>
 <link rel="stylesheet" href="assets/css/server.css">
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -145,11 +157,15 @@
       </div>
     </div>
     
+    <?php if ($serverSettings['server_copy_enabled'] !== '1'): ?>
+      <div class="col-12"><div class="custom-card p-4 text-center text-slate-700">এই সার্ভিসটি বর্তমানে অ্যাডমিন বন্ধ রেখেছেন।</div></div>
+    <?php else: ?>
     <div class="col-lg-8">
       <div class="custom-card p-4 p-md-5 mb-4">
         <form id="server_form" method="post" class="py-2">
-            <h2 class="text-center fw-extrabold text-slate-800 mb-4" style="font-size: 24px;">সার্ভিস ড্যাশবোর্ড - ICONIC ONLINE</h2>
+            <h2 class="text-center fw-extrabold text-slate-800 mb-4" style="font-size: 24px;"><?php echo $serverCopyEscape($serverSettings['server_copy_title']); ?></h2>
             
+            <?php if ($serverSettings['server_copy_smart_paste_enabled'] === '1'): ?>
             <div class="smart-paste-box">
                 <div class="flex items-center justify-between mb-2">
                     <label for="smartPasteInput" class="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-0">
@@ -167,13 +183,17 @@
                     <i class="fa-solid fa-circle-info text-sky-500"></i> বাংলা সংখ্যা, যেকোনো চিহ্ন (*, /, -, ., স্পেস) ও ১৩ ডিজিট থাকলে অটো ১৭ ডিজিট রূপান্তর হবে।
                 </p>
             </div>
+            <?php endif; ?>
 
             <div class="inputIcon">
                 <label for="versionSelect">Select Version</label> 
                 <div class="input-box-wrap">
-                    <select id="versionSelect" name="version" required class="form-select form-control">
-                      <option selected value="1">এপিআই ১ (<?php echo file_get_contents('api_key/deduction_amount.txt'); ?>tk)</option>
-                      <option value="2">এপিআই ২ (<?php echo file_get_contents('api_key/v3_deduction_amount.txt'); ?>tk)</option>
+                    <select id="versionSelect" name="version" required class="form-select form-control" <?php echo empty($serverCopyAvailableApis) ? 'disabled' : ''; ?>>
+                      <?php foreach ($serverCopyAvailableApis as $apiVersion): ?>
+                        <?php $priceFile = $apiVersion === '1' ? 'api_key/deduction_amount.txt' : 'api_key/v3_deduction_amount.txt'; $apiPrice = is_file($priceFile) ? trim((string)file_get_contents($priceFile)) : '0'; ?>
+                        <option value="<?php echo $apiVersion; ?>" <?php echo $apiVersion === $serverCopyAvailableApis[0] ? 'selected' : ''; ?>>এপিআই <?php echo $apiVersion; ?> (<?php echo $serverCopyEscape($apiPrice); ?>৳)</option>
+                      <?php endforeach; ?>
+                      <?php if (empty($serverCopyAvailableApis)): ?><option value="">কোনো API চালু নেই</option><?php endif; ?>
                     </select>
                     <i class="s_icon fa fa-server"></i>
                 </div>
@@ -198,16 +218,17 @@
             <input type="text" hidden value="" name="email">
 
             <?php
-              if ($balance > 5) {
+              if (!empty($serverCopyAvailableApis)) {
                  echo '<button type="submit" class="btn btn-primary w-100 mt-3" name="submit"><i class="fa-solid fa-magnifying-glass me-2"></i>তথ্য অনুসন্ধান</button>';
               } else {
-                 echo '<button class="btn btn-danger w-100 mt-3" disabled name="submit">Recharge Please</button>';
+                 echo '<button class="btn btn-danger w-100 mt-3" disabled name="submit">কোনো API বর্তমানে চালু নেই</button>';
               }
             ?>
         </form>
       </div>
     </div>
 
+    <?php if ($serverSettings['server_copy_download_list_enabled'] === '1'): ?>
     <div class="col-md-12 mt-3">
         <div class="custom-card p-3 p-md-4">
             <div class="flex items-center justify-between mb-3">
@@ -222,8 +243,7 @@
                       <tr>
                         <th class="text-center">Name</th>
                         <th class="text-center">NID</th>
-                        <th class="text-center">Action</th>
-                        <th class="text-center">Action</th>
+                        <?php foreach ($serverCopyDownloads as $downloadType): ?><th class="text-center"><?php echo strtoupper($downloadType); ?></th><?php endforeach; ?>
                       </tr>
                     </thead>
                     <tbody id="data-body">
@@ -232,19 +252,24 @@
             </div>
         </div>
     </div>
+    <?php endif; ?>
+    <?php endif; ?>
 
   </div>
 </div>
 
+<?php if ($serverSettings['server_copy_enabled'] === '1' && $serverSettings['server_copy_group_enabled'] === '1' && $serverSettings['server_copy_group_url'] !== ''): ?>
 <div style="position: fixed; bottom: 20px; right: 20px; z-index: 99;">
-    <a href="https://chat.whatsapp.com/IKEmCVrXgwp5a87Lng1AGX" target="_blank" style="background: #0EA5E9; color: #FFF; padding: 12px 20px; border-radius: 30px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; text-decoration: none; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);">
+    <a href="<?php echo $serverCopyEscape($serverSettings['server_copy_group_url']); ?>" target="_blank" rel="noopener noreferrer" style="background: #0EA5E9; color: #FFF; padding: 12px 20px; border-radius: 30px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; text-decoration: none; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);">
         <i class="fa-brands fa-whatsapp text-lg"></i> Join Group
     </a>
 </div>
+<?php endif; ?>
 
 <?php include('footer.php'); ?>
 <script>
 $(document).ready(function() {
+  if (!$('#data-table').length) { return; }
 
   function convertBengaliToEnglish(str) {
       if (!str) return '';
@@ -417,7 +442,7 @@ $(document).ready(function() {
           requestUrl = 'insert_un_server_v2.php';
       }
 
-      if (!/^\d{10}$|^\d{13}$\vert{}^\d{17}$/.test(nid)) {
+      if (!/^(?:\d{10}|\d{13}|\d{17})$/.test(nid)) {
           Swal.fire({
               title: 'Validation Error!',
               text: 'আপনাকে অবশ্যই ১০ ডিজিট, ১৩ ডিজিট অথবা ১৭ ডিজিটের আইডি নাম্বার দিতে হবে।',
@@ -515,6 +540,15 @@ $(document).ready(function() {
 
   let cachedData = [];
 
+  $('#data-table').on('click', '.server-copy-download', function() {
+      const nid = $(this).attr('data-nid');
+      const id = $(this).attr('data-id');
+      const action = $(this).attr('data-download');
+      if (action === 'v1') downloadFile(nid, id);
+      else if (action === 'v2') downloadFileOne(nid, id);
+      else if (action === 'nid') downloadFileNID(nid, id);
+  });
+
   function fetchData() {
       $.ajax({
           url: 'fetch_data.php',
@@ -526,13 +560,17 @@ $(document).ready(function() {
                   table.clear();
                   
                   $.each(response, function(index, item) {
-                      table.row.add([
-                          item.nameEn,
-                          item.nationalId,
-                          '<button class="download-button btn btn-sm btn-primary me-1 px-3" onclick="downloadFile(\'' + item.nationalId + '\', \'' + item.id + '\')">V1</button>' +
-                          '<button class="download-button btn btn-sm btn-info me-1 px-3 text-white" onclick="downloadFileOne(\'' + item.nationalId + '\', \'' + item.id + '\')">V2</button>', 
-                          '<button class="download-button btn btn-sm btn-success px-3" onclick="downloadFileNID(\'' + item.nationalId + '\', \'' + item.id + '\')">NID</button>'
-                      ]).draw(false);
+                      var escapeHtml = function(value) { return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;'); };
+                      var safeNid = escapeHtml(item.nationalId);
+                      var safeName = escapeHtml(item.nameEn);
+                      var safeId = parseInt(item.id, 10) || 0;
+                      var rowData = [safeName, safeNid];
+                      <?php foreach ($serverCopyDownloads as $downloadType): ?>
+                      <?php if ($downloadType === 'v1'): ?>rowData.push('<button class="download-button btn btn-sm btn-primary px-3 server-copy-download" data-download="v1" data-nid="' + safeNid + '" data-id="' + safeId + '">V1</button>');<?php endif; ?>
+                      <?php if ($downloadType === 'v2'): ?>rowData.push('<button class="download-button btn btn-sm btn-info px-3 text-white server-copy-download" data-download="v2" data-nid="' + safeNid + '" data-id="' + safeId + '">V2</button>');<?php endif; ?>
+                      <?php if ($downloadType === 'nid'): ?>rowData.push('<button class="download-button btn btn-sm btn-success px-3 server-copy-download" data-download="nid" data-nid="' + safeNid + '" data-id="' + safeId + '">NID</button>');<?php endif; ?>
+                      <?php endforeach; ?>
+                      table.row.add(rowData).draw(false);
                   });
               }
           },

@@ -23,6 +23,9 @@ if ($users_query && $users_query->num_rows > 0) {
         $total_user_balance += floatval($r['balance'] ?? 0);
     }
 }
+if (empty($_SESSION['admin_csrf'])) {
+    $_SESSION['admin_csrf'] = bin2hex(random_bytes(32));
+}
 ?>
 
 <div class="space-y-6">
@@ -302,7 +305,7 @@ if ($users_query && $users_query->num_rows > 0) {
     function changeUserPassword(token, email) {
         Swal.fire({
             title: 'পাসওয়ার্ড পরিবর্তন',
-            input: 'text',
+            input: 'password',
             inputLabel: email + ' এর জন্য নতুন পাসওয়ার্ড লিখুন',
             inputPlaceholder: 'নতুন পাসওয়ার্ড দিন',
             showCancelButton: true,
@@ -310,8 +313,8 @@ if ($users_query && $users_query->num_rows > 0) {
             cancelButtonText: 'বাতিল',
             confirmButtonColor: '#4f46e5',
             inputValidator: (value) => {
-                if (!value || !value.trim()) {
-                    return 'পাসওয়ার্ড ফিল্ড খালি রাখা যাবে না!';
+                if (!value || value.trim().length < 6) {
+                    return 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে!';
                 }
             }
         }).then((result) => {
@@ -321,7 +324,8 @@ if ($users_query && $users_query->num_rows > 0) {
                     type: 'POST',
                     data: {
                         token: token,
-                        new_password: result.value.trim()
+                        new_password: result.value.trim(),
+                        csrf_token: <?php echo json_encode($_SESSION['admin_csrf']); ?>
                     },
                     dataType: 'json',
                     success: function(response) {

@@ -7,7 +7,8 @@ session_start();
 
 // Admin session already thakle direct dashboard/bio page-e redirect
 if (isset($_SESSION['admin_token']) && !empty($_SESSION['admin_token'])) {
-    header("Location: dashboard.php");
+    $landingPage = (($_SESSION['admin_role'] ?? 'admin') === 'moderator') ? 'moderator_panel.php' : 'dashboard.php';
+    header("Location: " . $landingPage);
     exit();
 }
 
@@ -22,11 +23,13 @@ if (isset($_GET['admin_token']) && !empty($_GET['admin_token'])) {
     exit();
 }
 
-// Database configuration
+// Database configuration and backwards-compatible role migration
 include_once("includes/configuration.php");
+require_once __DIR__ . "/includes/admin_roles.php";
+sheba_ensure_admin_role_column($conn);
 
 // Prepared statement to securely verify admin token
-$stmt =$conn->prepare("SELECT id, name, email, token, balance FROM admin_user WHERE token = ? AND status = 1 LIMIT 1");
+$stmt =$conn->prepare("SELECT * FROM admin_user WHERE token = ? AND status = 1 LIMIT 1");
 $stmt->bind_param("s", $text_token);$stmt->execute();
 $result =$stmt->get_result();
 
@@ -268,7 +271,7 @@ $stmt->close();
                                 background: '#0F172A',
                                 color: '#F8FAFC'
                             }).then(() => {
-                                window.location.href = 'dashboard.php';
+                                window.location.href = response.role === 'moderator' ? 'moderator_panel.php' : 'dashboard.php';
                             });
                         } else {
                             Swal.fire({

@@ -15,14 +15,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if ($result->num_rows > 0) {
         $user = $result->fetch_assoc();
-        if($user['status'] === 0){
+        if ((int)$user['status'] !== 1) {
            echo json_encode(['status' => 'error', 'message' => 'Your account not active']);
         }else{
         // Set session if the user is found
         $_SESSION['admin_token'] = $user['token'];
+        $_SESSION['admin_role'] = $user['role'] ?? 'admin';
         $_SESSION["admin_id"] = base64_encode($user['email']);
        setcookie("admin_session_token_unique", $user['token'], time() + (10 * 365 * 24 * 60 * 60), "/", "", true, true); // 10 years   
-        echo json_encode(['status' => 'success', 'message' => 'Login successful']);
+        echo json_encode(['status' => 'success', 'role' => $_SESSION['admin_role'], 'message' => 'Login successful']);
     }
     } else {
         // If no match is found for email and password

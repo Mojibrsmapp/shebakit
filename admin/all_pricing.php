@@ -1,6 +1,8 @@
 <?php
 session_start();
 include_once("../includes/configuration.php");
+require_once __DIR__ . "/includes/admin_roles.php";
+sheba_require_admin_role($conn, ['admin']);
 
 $adminToken = (string)($_SESSION['admin_token'] ?? '');
 $authStmt = $conn->prepare('SELECT id FROM admin_user WHERE token = ? LIMIT 1');

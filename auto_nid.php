@@ -1,4 +1,12 @@
-<?php include('header.php'); ?>
+<?php
+include_once('header.php');
+require_once __DIR__ . '/includes/server_copy_settings.php';
+$serverSettings = sheba_server_copy_settings($conn);
+if ($serverSettings['server_copy_enabled'] !== '1' || $serverSettings['server_copy_download_list_enabled'] !== '1' || $serverSettings['server_copy_download_nid_enabled'] !== '1') {
+    http_response_code(403);
+    exit('এই download format অ্যাডমিন বন্ধ রেখেছেন।');
+}
+?>
     <div class="card mb-3">
       <?php
       include 'includes/marquee.php';

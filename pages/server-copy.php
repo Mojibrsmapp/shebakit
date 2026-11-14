@@ -17,7 +17,8 @@ if (isset($_GET["nid"]) && isset($_GET["id"])) {
 include_once("../includes/configuration.php");
 
     // Prepare SQL query to fetch data based on nid and id
-    $sql = "SELECT * FROM server_copy WHERE nationalId = ? AND id = ?";
+    $userMail = base64_decode((string)$_SESSION['user_id']);
+    $sql = "SELECT * FROM server_copy WHERE nationalId = ? AND id = ? AND user_mail = ?";
     $stmt = $conn->prepare($sql);
     
     // Check if prepare was successful
@@ -26,7 +27,7 @@ include_once("../includes/configuration.php");
     }
     
     // Bind parameters (assuming nid is a string and id is an integer)
-    $stmt->bind_param("si", $nid, $id); // "s" for string, "i" for integer
+    $stmt->bind_param("sis", $nid, $id, $userMail); // NID, record id, and current user account
     
     // Execute the statement
     $stmt->execute();
