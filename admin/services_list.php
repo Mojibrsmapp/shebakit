@@ -55,7 +55,7 @@ $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';$where_sql =
 $params = [];$types = "";
 
 if (!empty($search_query)) {$where_sql = "WHERE service_name LIKE ? OR category LIKE ? OR description LIKE ?";
-    $like = "\%" . $search_query . "%";
+    $like = "%" . $search_query . "%";
     $params[] =$like;
     $params[] =$like;
     $params[] =$like;

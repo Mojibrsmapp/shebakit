@@ -5,7 +5,7 @@ error_reporting(0);
 
 // Check if user is logged in
 if (strlen($_SESSION['user_id']) == 0) {
-    header('location:index.php');
+    header('Location: ../index.php');
     exit;
 }
 
@@ -14,7 +14,7 @@ if (isset($_GET["nid"]) && isset($_GET["id"])) {
     $nid = $_GET["nid"];
     $id = $_GET["id"];
     
-include_once("includes/configuration.php"); 
+include_once("../includes/configuration.php");
 
     // Prepare SQL query to fetch data based on nid and id
     $sql = "SELECT * FROM server_copy WHERE nationalId = ? AND id = ?";

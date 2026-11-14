@@ -133,7 +133,7 @@ try {
 	<link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
 	<meta property="og:image" content="icon.png">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-	<link rel="stylesheet" href="https://cdn.rawgit.com/sh4hids/bangla-web-fonts/solaimanlipi/stylesheet.css">
+	<link rel="stylesheet" href="fonts/solaiman_lifi.css">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.0.0/css/bootstrap.min.css" integrity="sha512-NZ19NrT58XPK5sXqXnnvtf9T5kLXSzGQlVZL9taZWeTBtXoN3xIfTdxbkQh6QSoJfJgpojRqMfhyqBAAEeiXcA==" crossorigin="anonymous" referrerpolicy="no-referrer">
 	<script>var birthRegistrationNumber = "<?php echo $birthRegistrationNumber; ?>"; document.addEventListener('contextmenu', function (e) {e.preventDefault();});document.addEventListener('keydown', function (e) {if(e.ctrlKey){e.preventDefault();}});</script>
 	<link rel="stylesheet" href="assets/birth-card-files/card.css">
@@ -153,7 +153,7 @@ try {
         
         @font-face {
             font-family: 'DejaVu';
-            src: url('fonts/DejaVu.ttf') format('truetype');
+            src: url('fonts/Bangla.ttf') format('truetype');
         }
 
 	</style>

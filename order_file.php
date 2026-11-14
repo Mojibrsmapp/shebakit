@@ -1,10 +1,11 @@
-<?php 
+<?php
 session_start();
 include_once("includes/configuration.php");
+require_once __DIR__ . "/includes/upload_validation.php";
 
 if (isset($_SESSION['user_token'])) {
     $token_user = $_SESSION['user_token'];
-    
+
     $stmt = $conn->prepare("SELECT id, balance, email, name, token, mobile FROM users WHERE token = ?");
     if ($stmt) {
         $stmt->bind_param("s", $token_user);
@@ -41,6 +42,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_file_order'])) 
 
     $file_path = "";
     if (isset($_FILES['order_attachment']) && $_FILES['order_attachment']['error'] === 0) {
+        if (!shebakit_valid_upload($_FILES['order_attachment'])) {
+            $order_err = "অনুমোদিত ফাইল: PDF, JPG, PNG, WEBP বা TXT (সর্বোচ্চ ২০ MB)।";
+        } else {
         $upDir = "uploads/orders/";
         if (!is_dir($upDir)) {
             mkdir($upDir, 0755, true);
@@ -51,9 +55,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_file_order'])) 
         if (move_uploaded_file($_FILES["order_attachment"]["tmp_name"], $targetPath)) {
             $file_path = $targetPath;
         }
+        }
     }
 
-    if (empty($text_data) && empty($file_path)) {
+    if ($order_err !== '') {
+        // Keep the validation error and do not create an order.
+    } elseif (empty($text_data) && empty($file_path)) {
         $order_err = "অনুগ্রহ করে প্রয়োজনীয় তথ্য অথবা ফাইল আপলোড করুন!";
     } else {
         $chk = $conn->prepare("SELECT service_title, price, status FROM order_file_services WHERE id = ? LIMIT 1");
@@ -131,13 +138,13 @@ if ($h_stmt) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>অর্ডার ফাইল সার্ভিস - ICONIC</title>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
-    
+
     <style>
         body { font-family: 'Hind Siliguri', 'Plus Jakarta Sans', sans-serif; background: #F1F5F9; color: #1E293B; }
         .top-navbar { background: #FFFFFF; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 12px rgba(0,0,0,0.04); position: sticky; top: 0; z-index: 50; }
@@ -154,7 +161,7 @@ if ($h_stmt) {
 
     <header class="top-navbar">
         <div class="flex items-center gap-3">
-            <a href="user Dashboad.php">
+            <a href="dashboard.php">
                 <img src="https://shebakitonline.xyz/assets/logo_nav.png" alt="Logo" class="header-logo">
             </a>
         </div>
@@ -166,9 +173,9 @@ if ($h_stmt) {
     <div class="max-w-4xl mx-auto px-3 py-6">
 
         <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm mb-6">
-            
+
             <div class="flex items-center justify-between border-b pb-4 mb-4">
-                <a href="user Dashboad.php" class="text-xs font-bold text-slate-500 hover:text-emerald-600 flex items-center gap-1.5">
+                <a href="dashboard.php" class="text-xs font-bold text-slate-500 hover:text-emerald-600 flex items-center gap-1.5">
                     <i class="fa-solid fa-arrow-left"></i> ড্যাশবোর্ডে ফিরুন
                 </a>
                 <span class="text-xs font-extrabold bg-emerald-50 text-emerald-700 px-3.5 py-1.5 rounded-full border border-emerald-100">
@@ -199,12 +206,12 @@ if ($h_stmt) {
                 <div class="mb-5">
                     <label class="block text-xs font-bold text-slate-700 mb-2">সেবা নির্বাচন করুন *</label>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-80 overflow-y-auto p-1 border rounded-2xl">
-                        <?php foreach ($file_services as $idx =>$fs): 
+                        <?php foreach ($file_services as $idx =>$fs):
                             $is_sel = ($idx === 0);
                             $is_active = ($fs['status'] === 'active');
                         ?>
-                        <div class="service-select-item flex items-center justify-between <?php echo $is_sel ? 'selected' : ''; ?>" 
-                             data-id="<?php echo $fs['id']; ?>" 
+                        <div class="service-select-item flex items-center justify-between <?php echo $is_sel ? 'selected' : ''; ?>"
+                             data-id="<?php echo $fs['id']; ?>"
                              data-price="<?php echo intval($fs['price']); ?>"
                              data-placeholder="<?php echo htmlspecialchars($fs['placeholder']); ?>"
                              onclick="selectFileService(this, <?php echo $fs['id']; ?>)">
@@ -230,7 +237,7 @@ if ($h_stmt) {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">সংশ্লিষ্ট ফাইল আপলোড করুন (ঐচ্ছিক)</label>
-                        <input type="file" name="order_attachment" class="custom-input-box text-xs">
+                        <input type="file" name="order_attachment" accept=".pdf,.jpg,.jpeg,.png,.webp,.txt" class="custom-input-box text-xs">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">যোগাযোগের মোবাইল নম্বর</label>

@@ -2,12 +2,12 @@
 session_start();
 
 if (!isset($_SESSION["user_token"])) {
-    header("location: ../index.php");
+    header("Location: index.php");
     exit;
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    header("location: ../index.php");
+    header("Location: index.php");
     exit;
 }
 
@@ -70,7 +70,7 @@ $priceFile = 'api_key/card_make.txt';
 $nid_make = file_exists($priceFile) ? (float)file_get_contents($priceFile) : null;
 
 if ($nid_make === null) {
-    echo "<script>alert('Price file not found or unreadable.'); window.location.href='../index.php';</script>";
+    echo "<script>alert('Price file not found or unreadable.'); window.location.href='index.php';</script>";
     exit;
 }
 
@@ -84,11 +84,11 @@ $resultBalance = $stmtBalanceCheck->get_result();
 if ($rowBalance = $resultBalance->fetch_assoc()) {
     $currentBalance = $rowBalance['balance'];
     if ($currentBalance < $nid_make) {
-        echo "<script>alert('Insufficient balance.'); window.location.href='../index.php';</script>";
+        echo "<script>alert('Insufficient balance.'); window.location.href='index.php';</script>";
         exit;
     }
 } else {
-    echo "<script>alert('User balance not found.'); window.location.href='../index.php';</script>";
+    echo "<script>alert('User balance not found.'); window.location.href='index.php';</script>";
     exit;
 }
 

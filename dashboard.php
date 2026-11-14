@@ -1,10 +1,11 @@
-<?php 
+<?php
 session_start();
 include_once("includes/configuration.php");
+require_once __DIR__ . "/includes/service_catalog.php";
 
 if (isset($_SESSION['user_token'])) {
     $token_user = $_SESSION['user_token'];
-    
+
     $stmt = $conn->prepare("SELECT id, balance, email, name, token, mobile, image, profile_pic FROM users WHERE token = ?");
     $stmt->bind_param("s", $token_user);
     $stmt->execute();
@@ -48,6 +49,7 @@ if ($q_mfs) { while ($r = $q_mfs->fetch_assoc()) { $status_map['mfs_' . $r['serv
 $q_num = $conn->query("SELECT operator_key, status FROM number_to_server_services");
 if ($q_num) { while ($r = $q_num->fetch_assoc()) { $status_map['num_' . $r['operator_key']] = $r['status']; } }
 
+$dynamic_services = shebakit_service_catalog($conn);
 $whatsapp_group_link = get_site_setting($conn, 'whatsapp_group', '#');
 $telegram_link = get_site_setting($conn, 'telegram_link', '#');
 ?>
@@ -57,14 +59,14 @@ $telegram_link = get_site_setting($conn, 'telegram_link', '#');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ShebaKit Workspace - ড্যাশবোর্ড</title>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="shortcut icon" type="image/jpeg" href="https://shebakit.xyz/assets/logo.jpg">
-    
+
     <style>
         /* Theme Switching Variables */
         :root[data-theme="light"] {
@@ -253,7 +255,7 @@ $telegram_link = get_site_setting($conn, 'telegram_link', '#');
             </div>
 
             <div class="flex items-center gap-2 sm:gap-3">
-                
+
                 <!-- Dark / Light Mode Switch Button -->
                 <button id="themeToggleBtn" class="theme-toggle-btn" title="ডার্ক/হোয়াইট মোড পরিবর্তন করুন" type="button">
                     <i class="fa-solid fa-moon text-sm" id="themeIcon"></i>
@@ -280,7 +282,7 @@ $telegram_link = get_site_setting($conn, 'telegram_link', '#');
         <!-- User Identity Card -->
         <div class="user-identity-card p-4 sm:p-5">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                
+
                 <div class="flex items-center gap-3.5">
                     <div class="relative shrink-0">
                         <?php if (!empty($user_image)): ?>
@@ -594,6 +596,31 @@ $telegram_link = get_site_setting($conn, 'telegram_link', '#');
             </div>
         </div>
 
+        <!-- Admin-managed services are rendered dynamically so new services appear without editing this page. -->
+        <?php if (!empty($dynamic_services)): ?>
+        <div class="space-y-3 service-group">
+            <div class="flex items-center justify-between">
+                <span class="section-label">নতুন ও নিয়মিত সার্ভিস</span>
+                <a href="all_services.php" class="text-xs font-bold text-[var(--brand-blue)]">সকল সেবা দেখুন →</a>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <?php foreach ($dynamic_services as $service): ?>
+                <a href="<?php echo htmlspecialchars($service['url'], ENT_QUOTES, 'UTF-8'); ?>" class="service-hub-item no-underline">
+                    <?php if (!empty($service['image_url'])): ?>
+                        <img src="<?php echo htmlspecialchars($service['image_url'], ENT_QUOTES, 'UTF-8'); ?>" alt="" class="w-10 h-10 rounded-xl object-cover">
+                    <?php else: ?>
+                        <div class="icon-bubble bg-[#E0F2FE] text-[#0866D9]"><i class="fa-solid fa-bolt"></i></div>
+                    <?php endif; ?>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-xs sm:text-sm font-bold text-[var(--brand-dark)] truncate"><?php echo htmlspecialchars($service['title'], ENT_QUOTES, 'UTF-8'); ?></h4>
+                        <p class="text-[11px] text-[var(--text-muted)] truncate mt-0.5"><?php echo htmlspecialchars($service['category'] ?? 'সার্ভিস', ENT_QUOTES, 'UTF-8'); ?> · ৳<?php echo number_format((float)($service['price'] ?? 0), 2); ?></p>
+                    </div>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
     </main>
 
     <!-- Floating Help Group -->
@@ -615,6 +642,10 @@ $telegram_link = get_site_setting($conn, 'telegram_link', '#');
         <a href="work_history.php" class="flex flex-col items-center gap-1 text-[var(--text-muted)] text-[11px] font-semibold">
             <i class="fa-solid fa-clock-rotate-left text-base"></i>
             <span>হিস্টোরি</span>
+        </a>
+        <a href="all_services.php" class="flex flex-col items-center gap-1 text-[var(--text-muted)] text-[10px] font-semibold">
+            <i class="fa-solid fa-layer-group text-base"></i>
+            <span>সকল সেবা</span>
         </a>
         <a href="recharge.php" class="flex flex-col items-center gap-1 text-[var(--text-muted)] text-[11px] font-semibold">
             <i class="fa-solid fa-wallet text-base"></i>
@@ -638,6 +669,7 @@ $telegram_link = get_site_setting($conn, 'telegram_link', '#');
         </div>
         <div class="flex-1 overflow-y-auto p-2.5 space-y-1">
             <a href="dashboard.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--brand-blue)] bg-[var(--stat-box)] font-bold text-xs"><i class="fa-solid fa-house text-[var(--brand-blue)] w-5"></i> হোম ড্যাশবোর্ড</a>
+            <a href="all_services.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--text-dark)] hover:bg-[var(--stat-box)] hover:text-[var(--brand-blue)] font-bold text-xs"><i class="fa-solid fa-layer-group text-[#08B8D0] w-5"></i> সকল সেবা (A–Z)</a>
             <a href="serverCopy.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--text-dark)] hover:bg-[var(--stat-box)] hover:text-[var(--brand-blue)] font-bold text-xs transition"><i class="fa-solid fa-server text-[#08B8D0] w-5"></i> অটো সার্ভার কপি</a>
             <a href="auto_tin.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--text-dark)] hover:bg-[var(--stat-box)] hover:text-[var(--brand-blue)] font-bold text-xs transition"><i class="fa-solid fa-file-invoice text-rose-600 w-5"></i> অটো টিন সার্টিফিকেট</a>
             <a href="order_file.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--text-dark)] hover:bg-[var(--stat-box)] hover:text-[var(--brand-blue)] font-bold text-xs transition"><i class="fa-solid fa-file-arrow-up text-[#10B981] w-5"></i> অর্ডার ফাইল</a>
