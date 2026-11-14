@@ -38,6 +38,12 @@ try {
 $e = static fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 require_once __DIR__ . '/includes/deposit_proof.php';
 ?>
+<style>
+    .moderator-data-table { color: #0f172a !important; background: #ffffff !important; }
+    .moderator-data-table thead th { color: #0f172a !important; background: #e2e8f0 !important; border-color: #cbd5e1 !important; }
+    .moderator-data-table tbody td { color: #334155 !important; background: #ffffff !important; border-color: #e2e8f0 !important; }
+    .moderator-data-table tbody tr:nth-child(even) td { background: #f8fafc !important; }
+</style>
 <div class="space-y-4">
     <div class="rounded-2xl bg-white border border-slate-200 p-5 flex items-center justify-between gap-3">
         <div><h2 class="text-xl font-extrabold text-slate-800"><?= $e($labels[$section]) ?></h2><p class="text-xs text-slate-500 mt-1">শুধু দেখা যাবে—এখানে কোনো পরিবর্তন করা যাবে না।</p></div>
@@ -46,15 +52,15 @@ require_once __DIR__ . '/includes/deposit_proof.php';
     <?php if ($error !== ''): ?><div class="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 p-4 text-sm"><?= $e($error) ?></div><?php endif; ?>
     <div class="rounded-2xl bg-white border border-slate-200 overflow-x-auto">
         <?php if (!$rows && $error === ''): ?><p class="p-5 text-sm text-slate-500">দেখানোর মতো তথ্য নেই।</p><?php else: ?>
-        <table class="w-full min-w-[760px] text-sm text-left">
-            <thead class="bg-slate-50 text-slate-600"><tr>
+        <table class="moderator-data-table w-full min-w-[760px] text-sm text-left">
+            <thead class="bg-slate-50 text-slate-800"><tr>
                 <?php if ($section === 'orders'): ?><th class="p-3">#</th><th class="p-3">ইউজার</th><th class="p-3">অর্ডার</th><th class="p-3">ইনপুট</th><th class="p-3">মূল্য</th><th class="p-3">স্ট্যাটাস</th><th class="p-3">সময়</th>
                 <?php elseif ($section === 'history'): ?><th class="p-3">#</th><th class="p-3">ইমেইল</th><th class="p-3">সার্ভিস</th><th class="p-3">মূল্য</th><th class="p-3">আগের ব্যালেন্স</th><th class="p-3">পরের ব্যালেন্স</th><th class="p-3">সময়</th>
                 <?php elseif ($section === 'recharge'): ?><th class="p-3">#</th><th class="p-3">ইউজার</th><th class="p-3">মেথড</th><th class="p-3">TrxID</th><th class="p-3">পরিমাণ</th><th class="p-3">প্রমাণ</th><th class="p-3">স্ট্যাটাস</th><th class="p-3">সময়</th>
                 <?php elseif ($section === 'services'): ?><th class="p-3">ক্যাটাগরি</th><th class="p-3">সার্ভিস</th><th class="p-3">মূল্য</th><th class="p-3">স্ট্যাটাস</th>
                 <?php else: ?><th class="p-3">#</th><th class="p-3">নাম</th><th class="p-3">ইমেইল</th><th class="p-3">মোবাইল</th><th class="p-3">ব্যালেন্স</th><th class="p-3">স্ট্যাটাস</th><?php endif; ?>
             </tr></thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-slate-200 text-slate-800">
             <?php foreach ($rows as $row): ?>
                 <tr>
                 <?php if ($section === 'orders'): ?><td class="p-3">#<?= (int)$row['id'] ?></td><td class="p-3"><?= $e(($row['user_name'] ?? '') . ' ' . ($row['user_phone'] ?? '')) ?></td><td class="p-3"><?= $e($row['order_type'] ?? '') ?></td><td class="p-3 max-w-xs truncate"><?= $e($row['input_data'] ?? '') ?></td><td class="p-3">৳<?= $e($row['price'] ?? '') ?></td><td class="p-3"><?= $e($row['status'] ?? '') ?></td><td class="p-3"><?= $e($row['created_at'] ?? '') ?></td>

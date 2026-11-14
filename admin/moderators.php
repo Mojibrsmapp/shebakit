@@ -183,10 +183,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $schemaReady) {
             $_SESSION['moderator_flash'] = ['type' => 'error', 'message' => 'মডারেটর অ্যাকাউন্টটি পাওয়া যায়নি।'];
         } else {
             $stmt = $conn->prepare("UPDATE admin_user SET status = ? WHERE id = ? AND `role` = 'moderator'");
-            $stmt->bind_param('ii', $newStatus, $moderatorId);
-            $ok = $stmt->execute();
-            $stmt->close();
+            if ($stmt) {
+                $stmt->bind_param('ii', $newStatus, $moderatorId);
+                $ok = $stmt->execute();
+                $stmt->close();
+            } else { $ok = false; }
             $_SESSION['moderator_flash'] = ['type' => $ok ? 'success' : 'error', 'message' => $newStatus ? 'মডারেটর পুনরায় সক্রিয় করা হয়েছে।' : 'মডারেটরের প্রবেশ বন্ধ করা হয়েছে।'];
+        }
+    } elseif ($action === 'delete') {
+        $moderatorId = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT);
+        if (!$moderatorId) {
+            $_SESSION['moderator_flash'] = ['type' => 'error', 'message' => 'মডারেটর অ্যাকাউন্টটি পাওয়া যায়নি।'];
+        } else {
+            $stmt = $conn->prepare("DELETE FROM admin_user WHERE id = ? AND `role` = 'moderator'");
+            if ($stmt) {
+                $stmt->bind_param('i', $moderatorId);
+                $ok = $stmt->execute() && $stmt->affected_rows > 0;
+                $stmt->close();
+            } else { $ok = false; }
+            $_SESSION['moderator_flash'] = [
+                'type' => $ok ? 'success' : 'error',
+                'message' => $ok ? 'মডারেটরের admin panel access মুছে দেওয়া হয়েছে; সাধারণ user account অক্ষত আছে।' : 'মডারেটর অ্যাকাউন্টটি মুছে ফেলা যায়নি।',
+            ];
         }
     }
     if (ob_get_level() > 0) { ob_clean(); }
@@ -271,7 +289,10 @@ $renderPermissions = static function (array $permissions, callable $escape) use 
         <?php foreach ($moderators as $moderator): $permissions = json_decode((string)($moderator['moderator_permissions'] ?? ''), true); if (!is_array($permissions)) { $permissions = sheba_default_permissions(); } ?>
             <article class="rounded-2xl border border-slate-200 p-4">
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-3"><div><strong class="text-slate-800"><?= $escape($moderator['name']) ?></strong><div class="text-xs text-slate-500"><?= $escape($moderator['email']) ?> · <?= (int)$moderator['status'] === 1 ? 'সক্রিয়' : 'বন্ধ' ?></div></div>
-                    <form method="post"><input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['moderator_csrf']) ?>"><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?= (int)$moderator['id'] ?>"><input type="hidden" name="status" value="<?= (int)$moderator['status'] === 1 ? 0 : 1 ?>"><button class="rounded-lg px-3 py-1 font-bold <?= (int)$moderator['status'] === 1 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700' ?>" type="submit"><?= (int)$moderator['status'] === 1 ? 'বন্ধ করুন' : 'সক্রিয় করুন' ?></button></form>
+                    <div class="flex items-center gap-2">
+                        <form method="post"><input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['moderator_csrf']) ?>"><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?= (int)$moderator['id'] ?>"><input type="hidden" name="status" value="<?= (int)$moderator['status'] === 1 ? 0 : 1 ?>"><button class="rounded-lg px-3 py-2 font-bold <?= (int)$moderator['status'] === 1 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700' ?>" type="submit"><?= (int)$moderator['status'] === 1 ? 'বন্ধ করুন' : 'সক্রিয় করুন' ?></button></form>
+                        <form method="post" onsubmit="return confirm('মডারেটরের admin panel access মুছে দিতে চান? সাধারণ user account মুছবে না।');"><input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['moderator_csrf']) ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int)$moderator['id'] ?>"><button class="rounded-lg bg-rose-600 px-3 py-2 font-bold text-white hover:bg-rose-700" type="submit">মুছুন</button></form>
+                    </div>
                 </div>
                 <form method="post" class="space-y-3"><input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['moderator_csrf']) ?>"><input type="hidden" name="action" value="permissions"><input type="hidden" name="id" value="<?= (int)$moderator['id'] ?>"><div class="flex flex-wrap gap-2"><?php $renderPermissions($permissions, $escape); ?></div><button class="rounded-lg bg-slate-800 text-white text-xs font-bold px-4 py-2" type="submit">অনুমতি সংরক্ষণ</button></form>
             </article>
